@@ -9,8 +9,8 @@ COPY packages/web/package.json ./packages/web/
 RUN npm ci
 COPY packages/shared ./packages/shared
 COPY packages/api ./packages/api
-RUN npx turbo build --filter=@instapost/api
 RUN cd packages/api && npx prisma generate
+RUN npx turbo build --filter=@instapost/api
 
 FROM node:20-alpine
 WORKDIR /app
