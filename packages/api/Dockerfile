@@ -23,13 +23,13 @@ COPY --from=builder /app/node_modules ./node_modules
 # Internal Docker network config (matches docker-compose.prod.yml)
 ENV NODE_ENV=production
 ENV PORT=3001
-ENV DATABASE_URL=postgresql://instapost:instapost2026prod@postgres:5432/instapost
-ENV REDIS_URL=redis://:instapost2026prod@redis:6379
+ENV DATABASE_URL=postgresql://instapost:changeme@postgres:5432/instapost
+ENV REDIS_URL=redis://:changeme@redis:6379
 ENV MINIO_ENDPOINT=minio
 ENV MINIO_PORT=9000
 ENV MINIO_USE_SSL=false
-ENV MINIO_ACCESS_KEY=instapostminio
-ENV MINIO_SECRET_KEY=instapost2026minio
+ENV MINIO_ACCESS_KEY=minioadmin
+ENV MINIO_SECRET_KEY=minioadmin
 ENV MINIO_BUCKET=instapost-images
 ENV NANO_BANANA_PROVIDER=google
 ENV JWT_EXPIRES_IN=7d
