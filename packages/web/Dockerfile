@@ -1,8 +1,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json turbo.json tsconfig.base.json ./
-COPY packages/web/package.json ./packages/web/
+COPY packages/api/package.json ./packages/api/
+COPY packages/bot/package.json ./packages/bot/
+COPY packages/mcp/package.json ./packages/mcp/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/web/package.json ./packages/web/
 RUN npm ci
 COPY packages/shared ./packages/shared
 COPY packages/web ./packages/web
