@@ -83,5 +83,15 @@ bot.on('message:text', async (ctx) => {
   }
 });
 
-bot.start();
-console.log('InstaPost Telegram Bot running!');
+bot.catch((err) => {
+  console.error('Bot error:', err.message);
+});
+
+bot.start({
+  onStart: () => console.log('InstaPost Telegram Bot running!'),
+}).catch((err) => {
+  console.error('Failed to start bot:', err.message);
+  console.error('Bot will NOT restart - check TELEGRAM_BOT_TOKEN');
+  // Stay alive so Docker doesn't restart loop
+  setInterval(() => {}, 60_000);
+});
