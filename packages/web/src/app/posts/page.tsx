@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '../../lib/api';
-import { Plus, Trash2, Send, Calendar, X, Loader2, FileText, Image as ImageIcon, Layers } from 'lucide-react';
+import { Plus, Trash2, Send, Calendar, X, Loader2, FileText, Image as ImageIcon, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const STATUS_BADGE: Record<string, string> = {
   DRAFT: 'badge-draft',
@@ -26,7 +26,8 @@ export default function PostsList() {
   const [total, setTotal] = useState(0);
   const [filter, setFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedPost, setSelectedPost] = useState<any | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const [scheduleModal, setScheduleModal] = useState<string | null>(null);
   const [scheduleDate, setScheduleDate] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -136,7 +137,7 @@ export default function PostsList() {
                           src={post.imageUrl}
                           alt=""
                           className="w-11 h-11 rounded-thumb object-cover cursor-pointer hover:opacity-80 transition-opacity border border-border"
-                          onClick={() => setSelectedImage(post.imageUrl)}
+                          onClick={() => { setSelectedPost(post); setCarouselIndex(0); }}
                         />
                         {post.isCarousel && (
                           <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-sm">
@@ -270,17 +271,63 @@ export default function PostsList() {
         </div>
       )}
 
-      {/* Full Image Modal */}
-      {selectedImage && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 cursor-pointer modal-backdrop" onClick={() => setSelectedImage(null)}>
-          <div className="relative modal-content">
-            <img src={selectedImage} alt="Full size" className="max-w-full max-h-[85vh] object-contain rounded-card shadow-2xl" />
-            <button onClick={() => setSelectedImage(null)} className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors">
-              <X className="w-4 h-4" strokeWidth={2} />
-            </button>
+      {/* Full Image / Carousel Modal */}
+      {selectedPost && (() => {
+        const allImages = selectedPost.isCarousel && selectedPost.images?.length > 0
+          ? selectedPost.images.map((img: any) => img.imageUrl)
+          : [selectedPost.imageUrl].filter(Boolean);
+        const isMulti = allImages.length > 1;
+        return (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 modal-backdrop" onClick={() => setSelectedPost(null)}>
+            <div className="relative modal-content max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+              <img
+                src={allImages[carouselIndex]}
+                alt={`Imagem ${carouselIndex + 1}`}
+                className="w-full max-h-[85vh] object-contain rounded-card shadow-2xl"
+              />
+              <button onClick={() => setSelectedPost(null)} className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors z-10">
+                <X className="w-4 h-4" strokeWidth={2} />
+              </button>
+              {isMulti && (
+                <>
+                  {carouselIndex > 0 && (
+                    <button
+                      onClick={() => setCarouselIndex((i) => i - 1)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-text-primary" />
+                    </button>
+                  )}
+                  {carouselIndex < allImages.length - 1 && (
+                    <button
+                      onClick={() => setCarouselIndex((i) => i + 1)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5 text-text-primary" />
+                    </button>
+                  )}
+                  {/* Counter */}
+                  <div className="absolute top-3 left-3 bg-black/60 text-white text-sm px-3 py-1 rounded-full font-medium">
+                    {carouselIndex + 1}/{allImages.length}
+                  </div>
+                  {/* Dots */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    {allImages.map((_: string, idx: number) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCarouselIndex(idx)}
+                        className={`h-2 rounded-full transition-all ${
+                          idx === carouselIndex ? 'bg-white w-5' : 'bg-white/50 w-2'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
