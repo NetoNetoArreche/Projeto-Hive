@@ -23,7 +23,7 @@ ENV API_TOKEN=instapost_service_2026
 
 # External config from Coolify build args
 ARG MCP_AUTH_TOKEN
-ENV MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
+ENV MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-dev_mcp_token}
 
 EXPOSE 3002
 HEALTHCHECK --interval=30s --timeout=5s CMD node -e "process.exit(0)"
