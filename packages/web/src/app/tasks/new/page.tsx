@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
-import { ArrowLeft, Save, Megaphone } from 'lucide-react';
+import { ArrowLeft, Save, Megaphone, Upload, FileText, X, Loader2 } from 'lucide-react';
 
 const PLATFORMS = [
   { value: 'YOUTUBE', label: 'YouTube' },
@@ -21,10 +21,42 @@ const PRIORITIES = [
   { value: 'URGENT', label: 'Urgente', color: 'bg-red-50 text-status-failed border-red-200' },
 ];
 
+function FileUploadField({ label, fileUrl, fileName, uploading, onUpload, onRemove }: {
+  label: string;
+  fileUrl: string;
+  fileName: string;
+  uploading: boolean;
+  onUpload: (file: File) => void;
+  onRemove: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="mt-3">
+      <input ref={inputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" onChange={(e) => { if (e.target.files?.[0]) onUpload(e.target.files[0]); e.target.value = ''; }} />
+      {fileUrl ? (
+        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-bg-main border border-border">
+          <FileText className="w-4 h-4 text-primary flex-shrink-0" strokeWidth={1.5} />
+          <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate flex-1">{fileName || 'Arquivo'}</a>
+          <button onClick={onRemove} className="p-1 rounded hover:bg-white transition-colors flex-shrink-0"><X className="w-3.5 h-3.5 text-text-muted" /></button>
+        </div>
+      ) : (
+        <button onClick={() => inputRef.current?.click()} disabled={uploading} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-xs font-medium text-text-secondary hover:border-primary hover:text-primary transition-colors">
+          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" strokeWidth={2} />}
+          {uploading ? 'Enviando...' : label}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function NewTask() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
+  const [scriptUploading, setScriptUploading] = useState(false);
+  const [briefingUploading, setBriefingUploading] = useState(false);
+  const [scriptFile, setScriptFile] = useState({ url: '', name: '' });
+  const [briefingFile, setBriefingFile] = useState({ url: '', name: '' });
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -50,6 +82,19 @@ export default function NewTask() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  async function handleFileUpload(file: File, target: 'script' | 'briefing') {
+    const setUploading = target === 'script' ? setScriptUploading : setBriefingUploading;
+    const setFile = target === 'script' ? setScriptFile : setBriefingFile;
+    setUploading(true);
+    try {
+      const result = await api.uploadFile(file);
+      setFile({ url: result.fileUrl, name: result.fileName });
+    } catch (err: any) {
+      alert(err.message || 'Erro ao enviar arquivo');
+    }
+    setUploading(false);
+  }
+
   async function handleSave() {
     if (!form.title.trim()) { alert('Titulo e obrigatorio'); return; }
     setSaving(true);
@@ -59,12 +104,14 @@ export default function NewTask() {
       if (form.recordDate) body.recordDate = new Date(form.recordDate).toISOString();
       if (form.publishDate) body.publishDate = new Date(form.publishDate).toISOString();
       if (form.script) body.script = form.script;
+      if (scriptFile.url) body.scriptFileUrl = scriptFile.url;
       if (form.driveLink) body.driveLink = form.driveLink;
       if (form.projectId) body.projectId = form.projectId;
       body.isSponsored = form.isSponsored;
       if (form.isSponsored) {
         if (form.sponsorName) body.sponsorName = form.sponsorName;
         if (form.sponsorBriefing) body.sponsorBriefing = form.sponsorBriefing;
+        if (briefingFile.url) body.briefingFileUrl = briefingFile.url;
         if (form.sponsorContact) body.sponsorContact = form.sponsorContact;
         if (form.sponsorDeadline) body.sponsorDeadline = new Date(form.sponsorDeadline).toISOString();
       }
@@ -167,6 +214,14 @@ export default function NewTask() {
           placeholder="Escreva o roteiro do video aqui..."
           className="input-field min-h-[200px] resize-y font-mono text-sm"
         />
+        <FileUploadField
+          label="Enviar arquivo do roteiro"
+          fileUrl={scriptFile.url}
+          fileName={scriptFile.name}
+          uploading={scriptUploading}
+          onUpload={(f) => handleFileUpload(f, 'script')}
+          onRemove={() => setScriptFile({ url: '', name: '' })}
+        />
       </div>
 
       {/* Drive Link */}
@@ -217,6 +272,14 @@ export default function NewTask() {
             <div>
               <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Briefing</label>
               <textarea value={form.sponsorBriefing} onChange={(e) => set('sponsorBriefing', e.target.value)} placeholder="Detalhes do briefing..." className="input-field min-h-[120px] resize-y" />
+              <FileUploadField
+                label="Enviar arquivo do briefing"
+                fileUrl={briefingFile.url}
+                fileName={briefingFile.name}
+                uploading={briefingUploading}
+                onUpload={(f) => handleFileUpload(f, 'briefing')}
+                onRemove={() => setBriefingFile({ url: '', name: '' })}
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

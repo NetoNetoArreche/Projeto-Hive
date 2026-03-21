@@ -135,6 +135,20 @@ export const api = {
   deleteModule: (projectId: string, moduleId: string) =>
     request(`/api/projects/${projectId}/modules/${moduleId}`, { method: 'DELETE' }),
 
+  uploadFile: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const t = getToken();
+    const res = await fetch(`${BASE_URL}/api/upload/file`, {
+      method: 'POST',
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'Upload failed');
+    return data.data as { fileUrl: string; fileName: string; mimeType: string };
+  },
+
   instagramProfile: () =>
     request<{
       profile: {

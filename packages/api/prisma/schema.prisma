@@ -134,10 +134,12 @@ model Task {
   recordDate      DateTime?
   publishDate     DateTime?
   script          String?
+  scriptFileUrl   String?
   driveLink       String?
   isSponsored     Boolean      @default(false)
   sponsorName     String?
   sponsorBriefing String?
+  briefingFileUrl String?
   sponsorContact  String?
   sponsorDeadline DateTime?
   userId          String

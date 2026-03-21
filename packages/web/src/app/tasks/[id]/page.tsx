@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
-import { ArrowLeft, Save, Megaphone, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Megaphone, Loader2, Upload, FileText, X } from 'lucide-react';
 
 const PLATFORMS = [
   { value: 'YOUTUBE', label: 'YouTube' },
@@ -36,6 +36,40 @@ function toLocalDatetime(iso: string | null): string {
   return local.toISOString().slice(0, 16);
 }
 
+function FileUploadField({ label, fileUrl, fileName, uploading, onUpload, onRemove }: {
+  label: string;
+  fileUrl: string;
+  fileName: string;
+  uploading: boolean;
+  onUpload: (file: File) => void;
+  onRemove: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="mt-3">
+      <input ref={inputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" onChange={(e) => { if (e.target.files?.[0]) onUpload(e.target.files[0]); e.target.value = ''; }} />
+      {fileUrl ? (
+        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-bg-main border border-border">
+          <FileText className="w-4 h-4 text-primary flex-shrink-0" strokeWidth={1.5} />
+          <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate flex-1">{fileName || 'Arquivo'}</a>
+          <button onClick={onRemove} className="p-1 rounded hover:bg-white transition-colors flex-shrink-0"><X className="w-3.5 h-3.5 text-text-muted" /></button>
+        </div>
+      ) : (
+        <button onClick={() => inputRef.current?.click()} disabled={uploading} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-xs font-medium text-text-secondary hover:border-primary hover:text-primary transition-colors">
+          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" strokeWidth={2} />}
+          {uploading ? 'Enviando...' : label}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function getFileName(url: string): string {
+  if (!url) return '';
+  const parts = url.split('/');
+  return parts[parts.length - 1] || 'Arquivo';
+}
+
 export default function EditTask() {
   const router = useRouter();
   const params = useParams();
@@ -43,6 +77,10 @@ export default function EditTask() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
+  const [scriptUploading, setScriptUploading] = useState(false);
+  const [briefingUploading, setBriefingUploading] = useState(false);
+  const [scriptFile, setScriptFile] = useState({ url: '', name: '' });
+  const [briefingFile, setBriefingFile] = useState({ url: '', name: '' });
   const [form, setForm] = useState({
     title: '', description: '', platform: 'INSTAGRAM', priority: 'MEDIUM', status: 'PENDING',
     recordDate: '', publishDate: '', script: '', driveLink: '',
@@ -61,6 +99,8 @@ export default function EditTask() {
         isSponsored: task.isSponsored || false, sponsorName: task.sponsorName || '', sponsorBriefing: task.sponsorBriefing || '',
         sponsorContact: task.sponsorContact || '', sponsorDeadline: toLocalDatetime(task.sponsorDeadline), projectId: task.projectId || '',
       });
+      if (task.scriptFileUrl) setScriptFile({ url: task.scriptFileUrl, name: getFileName(task.scriptFileUrl) });
+      if (task.briefingFileUrl) setBriefingFile({ url: task.briefingFileUrl, name: getFileName(task.briefingFileUrl) });
       setProjects(proj.items);
       setLoading(false);
     }).catch(() => { router.push('/tasks'); });
@@ -68,6 +108,19 @@ export default function EditTask() {
 
   function set(key: string, value: any) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handleFileUpload(file: File, target: 'script' | 'briefing') {
+    const setUploading = target === 'script' ? setScriptUploading : setBriefingUploading;
+    const setFile = target === 'script' ? setScriptFile : setBriefingFile;
+    setUploading(true);
+    try {
+      const result = await api.uploadFile(file);
+      setFile({ url: result.fileUrl, name: result.fileName });
+    } catch (err: any) {
+      alert(err.message || 'Erro ao enviar arquivo');
+    }
+    setUploading(false);
   }
 
   async function handleSave() {
@@ -78,12 +131,14 @@ export default function EditTask() {
         title: form.title, platform: form.platform, priority: form.priority, status: form.status,
         description: form.description || null, script: form.script || null, driveLink: form.driveLink || null,
         isSponsored: form.isSponsored, projectId: form.projectId || null,
+        scriptFileUrl: scriptFile.url || null,
       };
       if (form.recordDate) body.recordDate = new Date(form.recordDate).toISOString();
       if (form.publishDate) body.publishDate = new Date(form.publishDate).toISOString();
       if (form.isSponsored) {
         body.sponsorName = form.sponsorName || null;
         body.sponsorBriefing = form.sponsorBriefing || null;
+        body.briefingFileUrl = briefingFile.url || null;
         body.sponsorContact = form.sponsorContact || null;
         if (form.sponsorDeadline) body.sponsorDeadline = new Date(form.sponsorDeadline).toISOString();
       }
@@ -174,7 +229,15 @@ export default function EditTask() {
       {/* Script */}
       <div className="card p-6 mb-4">
         <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Roteiro / Script</label>
-        <textarea value={form.script} onChange={(e) => set('script', e.target.value)} className="input-field min-h-[200px] resize-y font-mono text-sm" />
+        <textarea value={form.script} onChange={(e) => set('script', e.target.value)} placeholder="Escreva o roteiro do video aqui..." className="input-field min-h-[200px] resize-y font-mono text-sm" />
+        <FileUploadField
+          label="Enviar arquivo do roteiro"
+          fileUrl={scriptFile.url}
+          fileName={scriptFile.name}
+          uploading={scriptUploading}
+          onUpload={(f) => handleFileUpload(f, 'script')}
+          onRemove={() => setScriptFile({ url: '', name: '' })}
+        />
       </div>
 
       {/* Drive Link */}
@@ -213,7 +276,15 @@ export default function EditTask() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Briefing</label>
-              <textarea value={form.sponsorBriefing} onChange={(e) => set('sponsorBriefing', e.target.value)} className="input-field min-h-[120px] resize-y" />
+              <textarea value={form.sponsorBriefing} onChange={(e) => set('sponsorBriefing', e.target.value)} placeholder="Detalhes do briefing..." className="input-field min-h-[120px] resize-y" />
+              <FileUploadField
+                label="Enviar arquivo do briefing"
+                fileUrl={briefingFile.url}
+                fileName={briefingFile.name}
+                uploading={briefingUploading}
+                onUpload={(f) => handleFileUpload(f, 'briefing')}
+                onRemove={() => setBriefingFile({ url: '', name: '' })}
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

@@ -62,10 +62,12 @@ export interface CreateTaskInput {
   recordDate?: string;
   publishDate?: string;
   script?: string;
+  scriptFileUrl?: string;
   driveLink?: string;
   isSponsored?: boolean;
   sponsorName?: string;
   sponsorBriefing?: string;
+  briefingFileUrl?: string;
   sponsorContact?: string;
   sponsorDeadline?: string;
   projectId?: string;
@@ -92,10 +94,12 @@ export interface UpdateTaskInput {
   recordDate?: string;
   publishDate?: string;
   script?: string;
+  scriptFileUrl?: string;
   driveLink?: string;
   isSponsored?: boolean;
   sponsorName?: string;
   sponsorBriefing?: string;
+  briefingFileUrl?: string;
   sponsorContact?: string;
   sponsorDeadline?: string;
   projectId?: string;

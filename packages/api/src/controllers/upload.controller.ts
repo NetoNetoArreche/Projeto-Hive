@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { uploadImage } from '../services/storage.service';
+import { uploadImage, uploadFile } from '../services/storage.service';
 
 export async function uploadImageController(req: Request, res: Response) {
   try {
@@ -58,5 +58,44 @@ export async function uploadMultipleImagesController(req: Request, res: Response
     res.json({ success: true, data: { images: results } });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Failed to upload images' });
+  }
+}
+
+const ALLOWED_FILE_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
+  'text/csv',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+];
+
+export async function uploadFileController(req: Request, res: Response) {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, error: 'No file uploaded' });
+      return;
+    }
+
+    if (!ALLOWED_FILE_TYPES.includes(req.file.mimetype)) {
+      res.status(400).json({ success: false, error: 'Tipo de arquivo nao permitido' });
+      return;
+    }
+
+    if (req.file.size > 20 * 1024 * 1024) {
+      res.status(400).json({ success: false, error: 'Arquivo muito grande (max 20MB)' });
+      return;
+    }
+
+    const fileUrl = await uploadFile(req.file.buffer, req.file.mimetype, req.file.originalname);
+    res.json({ success: true, data: { fileUrl, fileName: req.file.originalname, mimeType: req.file.mimetype } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to upload file' });
   }
 }
