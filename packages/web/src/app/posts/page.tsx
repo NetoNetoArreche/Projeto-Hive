@@ -175,7 +175,7 @@ export default function PostsList() {
                 </td>
                 <td className="px-5 py-4">
                   <div className="flex gap-1.5 justify-end">
-                    {post.status === 'DRAFT' && (
+                    {(post.status === 'DRAFT' || post.status === 'FAILED') && (
                       <>
                         <button
                           onClick={() => handlePublish(post.id)}

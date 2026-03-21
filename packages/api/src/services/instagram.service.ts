@@ -153,20 +153,22 @@ async function publishCarousel(
     await pollContainerStatus(childId, token);
   }
 
-  // Step 3: Create carousel container
+  // Step 3: Create carousel container (children must be comma-separated)
   console.log('[Instagram] Creating carousel container...');
+  console.log('[Instagram] Children IDs:', childContainerIds);
   const params = new URLSearchParams({
     media_type: 'CAROUSEL',
+    children: childContainerIds.join(','),
     caption,
     access_token: token,
   });
-  childContainerIds.forEach((id) => params.append('children', id));
 
   const carouselRes = await fetch(`https://graph.instagram.com/v21.0/${igUserId}/media`, {
     method: 'POST',
     body: params,
   });
   const carouselData = (await carouselRes.json()) as any;
+  console.log('[Instagram] Carousel container response:', JSON.stringify(carouselData));
 
   if (!carouselData.id) {
     throw new Error(`Failed to create carousel container: ${JSON.stringify(carouselData)}`);
