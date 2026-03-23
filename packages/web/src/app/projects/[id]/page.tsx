@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { ArrowLeft, Plus, Trash2, Save, ExternalLink, CheckSquare, Square, Loader2, FolderKanban, ChevronDown, ChevronUp, Pencil, X } from 'lucide-react';
+import { FormattedText } from '../../../components/FormattedText';
 
 const STATUSES = [
   { value: 'PLANNING', label: 'Planejamento', color: 'bg-amber-50 text-amber-600 border-amber-200' },
@@ -289,7 +290,9 @@ export default function ProjectDetail() {
                                 )}
                               </div>
                               {mod.content && (
-                                <p className={`text-xs text-text-secondary mt-1.5 whitespace-pre-wrap ${expandedModules.has(mod.id) ? '' : 'line-clamp-2'}`}>{mod.content}</p>
+                                expandedModules.has(mod.id)
+                                  ? <FormattedText text={mod.content} className="text-xs text-text-secondary mt-1.5" />
+                                  : <p className="text-xs text-text-secondary mt-1.5 line-clamp-2">{mod.content.replace(/\*\*/g, '').replace(/^[-•*]\s/gm, '')}</p>
                               )}
                             </button>
                             {/* Actions row */}

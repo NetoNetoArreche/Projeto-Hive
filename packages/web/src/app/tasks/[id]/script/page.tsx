@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../../lib/api';
 import { ArrowLeft, Loader2, FileText, Pencil } from 'lucide-react';
+import { FormattedText } from '../../../../components/FormattedText';
 
 export default function ScriptView() {
   const router = useRouter();
@@ -51,9 +52,7 @@ export default function ScriptView() {
       {/* Script content */}
       {hasScript && (
         <div className="card p-8">
-          <div className="prose prose-sm max-w-none">
-            <pre className="whitespace-pre-wrap font-mono text-sm text-text-primary leading-relaxed bg-transparent p-0 m-0 border-none">{task.script}</pre>
-          </div>
+          <FormattedText text={task.script} className="text-sm text-text-primary leading-relaxed" />
         </div>
       )}
 
