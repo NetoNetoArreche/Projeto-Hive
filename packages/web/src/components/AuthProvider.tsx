@@ -1,8 +1,11 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { api, setToken, getToken } from '../lib/api';
 import { Zap, Loader2 } from 'lucide-react';
+
+const PUBLIC_PATHS = ['/invite'];
 
 interface AuthContextType {
   user: any;
@@ -21,6 +24,8 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isPublicPath = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -61,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('user');
   };
 
-  if (loading) {
+  if (loading && !isPublicPath) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-main">
         <div className="flex flex-col items-center gap-3">
@@ -74,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user) {
+  if (!user && !isPublicPath) {
     return <LoginScreen onLogin={login} onRegister={register} />;
   }
 
