@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../lib/api';
-import { Zap, Image as ImageIcon, Edit3, Clock, Send, Save, Loader2, X, Heart, MessageCircle, Share, ChevronLeft, ChevronRight, Layers, Plus, Trash2 } from 'lucide-react';
+import { Zap, Image as ImageIcon, Edit3, Clock, Send, Save, Loader2, X, Heart, MessageCircle, Share, ChevronLeft, ChevronRight, Layers, Plus, Trash2, Upload, FileText, Link as LinkIcon } from 'lucide-react';
 
 const ASPECT_RATIOS = [
   { value: '1:1', label: '1:1', desc: 'Feed' },
@@ -32,6 +32,22 @@ export default function NewPost() {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
   const [showFullImage, setShowFullImage] = useState(false);
+  const [driveLink, setDriveLink] = useState('');
+  const [postFile, setPostFile] = useState({ url: '', name: '' });
+  const [fileUploading, setFileUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileUpload(file: File) {
+    setFileUploading(true);
+    try {
+      const result = await api.uploadFile(file);
+      setPostFile({ url: result.fileUrl, name: result.fileName });
+    } catch (err: any) {
+      setMessage(err.message || 'Erro ao enviar arquivo');
+      setMessageType('error');
+    }
+    setFileUploading(false);
+  }
 
   async function handleGenerateImage() {
     if (!prompt) return;
@@ -106,6 +122,9 @@ export default function NewPost() {
         nanoPrompt: prompt || undefined,
         aspectRatio,
       };
+
+      if (driveLink) payload.driveLink = driveLink;
+      if (postFile.url) payload.fileUrl = postFile.url;
 
       if (isCarousel) {
         payload.isCarousel = true;
@@ -280,6 +299,53 @@ export default function NewPost() {
           <div className="card p-5">
             <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Agendar para</label>
             <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} className="input-field" />
+          </div>
+
+          {/* File Upload */}
+          <div className="card p-5">
+            <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Arquivo</label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.webp"
+              onChange={(e) => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); e.target.value = ''; }}
+            />
+            {postFile.url ? (
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-bg-main border border-border">
+                <FileText className="w-4 h-4 text-primary flex-shrink-0" strokeWidth={1.5} />
+                <a href={postFile.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate flex-1">
+                  {postFile.name || 'Arquivo'}
+                </a>
+                <button onClick={() => setPostFile({ url: '', name: '' })} className="p-1 rounded hover:bg-white transition-colors flex-shrink-0">
+                  <X className="w-3.5 h-3.5 text-text-muted" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={fileUploading}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-xs font-medium text-text-secondary hover:border-primary hover:text-primary transition-colors"
+              >
+                {fileUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" strokeWidth={2} />}
+                {fileUploading ? 'Enviando...' : 'Anexar arquivo'}
+              </button>
+            )}
+          </div>
+
+          {/* Google Drive Link */}
+          <div className="card p-5">
+            <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Link do Google Drive</label>
+            <div className="relative">
+              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" strokeWidth={1.5} />
+              <input
+                type="url"
+                value={driveLink}
+                onChange={(e) => setDriveLink(e.target.value)}
+                placeholder="https://drive.google.com/..."
+                className="input-field pl-9"
+              />
+            </div>
           </div>
 
           {/* Actions */}

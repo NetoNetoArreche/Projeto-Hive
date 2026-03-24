@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
-import { ArrowLeft, Plus, Trash2, Save, ExternalLink, CheckSquare, Square, Loader2, FolderKanban, ChevronDown, ChevronUp, Pencil, X } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, ExternalLink, CheckSquare, Square, Loader2, FolderKanban, ChevronDown, ChevronUp, Pencil, X, Upload, FileText } from 'lucide-react';
 import { FormattedText } from '../../../components/FormattedText';
 
 const STATUSES = [
@@ -30,6 +30,9 @@ export default function ProjectDetail() {
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [savingModule, setSavingModule] = useState(false);
+  const [fileUploadingModuleId, setFileUploadingModuleId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileTargetModuleId, setFileTargetModuleId] = useState<string | null>(null);
 
   function toggleExpand(moduleId: string) {
     setExpandedModules((prev) => {
@@ -99,6 +102,33 @@ export default function ProjectDetail() {
     } catch { alert('Erro ao salvar link'); }
   }
 
+  async function handleFileUpload(moduleId: string, file: File) {
+    setFileUploadingModuleId(moduleId);
+    try {
+      const result = await api.uploadFile(file);
+      await api.updateModule(id, moduleId, { fileUrl: result.fileUrl });
+      setProject((p: any) => ({
+        ...p,
+        modules: p.modules.map((m: any) => m.id === moduleId ? { ...m, fileUrl: result.fileUrl } : m),
+      }));
+    } catch { alert('Erro ao enviar arquivo'); }
+    setFileUploadingModuleId(null);
+  }
+
+  async function handleRemoveFile(moduleId: string) {
+    try {
+      await api.updateModule(id, moduleId, { fileUrl: null });
+      setProject((p: any) => ({
+        ...p,
+        modules: p.modules.map((m: any) => m.id === moduleId ? { ...m, fileUrl: null } : m),
+      }));
+    } catch { alert('Erro ao remover arquivo'); }
+  }
+
+  function getFileName(url: string) {
+    return url.split('/').pop() || 'Arquivo';
+  }
+
   async function handleAddModule() {
     if (!newModuleTitle.trim()) return;
     setAddingModule(true);
@@ -135,6 +165,20 @@ export default function ProjectDetail() {
 
   return (
     <div className="max-w-6xl mx-auto animate-fade-in">
+      {/* Hidden file input for module uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.webp"
+        onChange={(e) => {
+          if (e.target.files?.[0] && fileTargetModuleId) {
+            handleFileUpload(fileTargetModuleId, e.target.files[0]);
+          }
+          e.target.value = '';
+          setFileTargetModuleId(null);
+        }}
+      />
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href="/projects" className="w-9 h-9 rounded-lg bg-white border border-border flex items-center justify-center hover:border-primary transition-colors">
@@ -296,7 +340,7 @@ export default function ProjectDetail() {
                               )}
                             </button>
                             {/* Actions row */}
-                            <div className="mt-2 flex items-center gap-2">
+                            <div className="mt-2 flex items-center gap-2 flex-wrap">
                               <button
                                 onClick={() => startEditing(mod)}
                                 className="flex items-center gap-1 text-[11px] text-text-muted hover:text-primary transition-colors"
@@ -332,6 +376,30 @@ export default function ProjectDetail() {
                                   className="text-[11px] text-text-muted hover:text-primary transition-colors"
                                 >
                                   {mod.driveLink ? 'Editar link' : '+ Link Drive'}
+                                </button>
+                              )}
+                              <span className="text-text-muted/30">|</span>
+                              {mod.fileUrl ? (
+                                <div className="flex items-center gap-1.5">
+                                  <a href={mod.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline">
+                                    <FileText className="w-3 h-3" />
+                                    {getFileName(mod.fileUrl)}
+                                  </a>
+                                  <button onClick={() => handleRemoveFile(mod.id)} className="p-0.5 rounded hover:bg-red-50 transition-colors">
+                                    <X className="w-3 h-3 text-text-muted hover:text-status-failed" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => { setFileTargetModuleId(mod.id); setTimeout(() => fileInputRef.current?.click(), 0); }}
+                                  disabled={fileUploadingModuleId === mod.id}
+                                  className="flex items-center gap-1 text-[11px] text-text-muted hover:text-primary transition-colors"
+                                >
+                                  {fileUploadingModuleId === mod.id ? (
+                                    <><Loader2 className="w-3 h-3 animate-spin" /> Enviando...</>
+                                  ) : (
+                                    <><Upload className="w-3 h-3" strokeWidth={2} /> + Arquivo</>
+                                  )}
                                 </button>
                               )}
                             </div>

@@ -66,6 +66,8 @@ model Post {
   hashtags    String[]
   aspectRatio String      @default("1:1")
   isCarousel  Boolean     @default(false)
+  driveLink   String?
+  fileUrl     String?
   userId      String
   user        User        @relation(fields: [userId], references: [id])
   images      PostImage[]
@@ -212,6 +214,7 @@ model ProjectModule {
   order      Int      @default(0)
   isRecorded Boolean  @default(false)
   driveLink  String?
+  fileUrl    String?
   projectId  String
   project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
