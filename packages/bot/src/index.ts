@@ -10,6 +10,9 @@ import { publicarCommand } from './commands/publicar';
 import { cancelarCommand } from './commands/cancelar';
 import { statusCommand } from './commands/status';
 import { tarefasCommand } from './commands/tarefas';
+import { projetosCommand } from './commands/projetos';
+import { funisCommand } from './commands/funis';
+import { clipCommand, clipCortarCommand } from './commands/clip';
 import { handleCallbackQuery } from './callbacks';
 import { api } from './api-client';
 import { InlineKeyboard } from 'grammy';
@@ -36,6 +39,10 @@ bot.command('publicar', publicarCommand);
 bot.command('cancelar', cancelarCommand);
 bot.command('status', statusCommand);
 bot.command('tarefas', tarefasCommand);
+bot.command('projetos', projetosCommand);
+bot.command('funis', funisCommand);
+bot.command('clip', clipCommand);
+bot.command('clipcortar', clipCortarCommand);
 
 // Callback queries (inline buttons)
 bot.on('callback_query:data', handleCallbackQuery);
@@ -111,7 +118,7 @@ bot.catch((err) => {
 });
 
 bot.start({
-  onStart: () => console.log('InstaPost Telegram Bot running!'),
+  onStart: () => console.log('OpenHive Telegram Bot running!'),
 }).catch((err) => {
   console.error('Failed to start bot:', err.message);
   console.error('Bot will NOT restart - check TELEGRAM_BOT_TOKEN');

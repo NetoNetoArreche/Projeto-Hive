@@ -70,4 +70,23 @@ export const api = {
     request('/api/tasks', { method: 'POST', body: JSON.stringify(body) }),
   updateTask: (id: string, body: Record<string, unknown>) =>
     request(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+
+  // Projects
+  listProjects: (params?: string) =>
+    request<{ items: any[]; total: number }>(`/api/projects?${params || 'limit=10'}`),
+  getProject: (id: string) => request<any>(`/api/projects/${id}`),
+  createProject: (body: Record<string, unknown>) =>
+    request('/api/projects', { method: 'POST', body: JSON.stringify(body) }),
+
+  // Funnels
+  listFunnels: () => request<any[]>('/api/funnels'),
+  getFunnel: (id: string) => request<any>(`/api/funnels/${id}`),
+
+  // Video Clips
+  analyzeVideo: (url: string) =>
+    request<any>('/api/videos', { method: 'POST', body: JSON.stringify({ url }) }),
+  getVideoClip: (id: string) => request<any>(`/api/videos/${id}`),
+  listVideoClips: () => request<{ items: any[]; total: number }>('/api/videos?limit=10'),
+  cutVideoClips: (id: string, clips: any[], format = 'vertical') =>
+    request<any>(`/api/videos/${id}/cut`, { method: 'POST', body: JSON.stringify({ clips, format }) }),
 };
