@@ -1,8 +1,10 @@
 FROM python:3.12-slim
 
-# Install ffmpeg
+# Install ffmpeg + Node.js 22
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg && \
+    apt-get install -y --no-install-recommends ffmpeg curl ca-certificates && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -11,10 +13,18 @@ WORKDIR /app
 COPY scripts/video/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy scripts
-COPY scripts/video/ ./scripts/
+# Install Node.js dependencies
+COPY scripts/video/package.json .
+RUN npm install --omit=dev
+
+# Copy Prisma schema and generate client
+COPY packages/api/prisma/schema.prisma ./prisma/schema.prisma
+RUN npx prisma generate
+
+# Copy worker + Python scripts
+COPY scripts/video/ ./
 
 # Work directory for video processing
 RUN mkdir -p /tmp/instapost-videos
 
-CMD ["echo", "Video worker ready. Scripts in /app/scripts/"]
+CMD ["node", "worker.mjs"]

@@ -1,0 +1,12 @@
+{
+  "name": "instapost-video-worker",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.4.0",
+    "@prisma/client": "^6.0.0",
+    "prisma": "^6.0.0",
+    "minio": "^8.0.0"
+  }
+}

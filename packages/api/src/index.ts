@@ -15,7 +15,6 @@ import videoRoutes from './routes/video.routes';
 import { publishWorker } from './jobs/publish.worker';
 import { tokenRefreshWorker, initTokenRefreshJob } from './jobs/token-refresh.worker';
 import { taskReminderWorker } from './jobs/task-reminder.worker';
-import { videoWorker } from './jobs/video.worker';
 
 const app = express();
 
@@ -185,10 +184,6 @@ async function start() {
 
   taskReminderWorker.on('failed', (job, err) => {
     console.error(`Task reminder job ${job?.id} failed:`, err.message);
-  });
-
-  videoWorker.on('failed', (job, err) => {
-    console.error(`Video job ${job?.id} failed:`, err.message);
   });
 
   app.listen(env.PORT, () => {

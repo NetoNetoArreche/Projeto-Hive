@@ -57,9 +57,26 @@ services:
       context: .
       dockerfile: Dockerfile.video
     container_name: instapost-video-worker
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://instapost:${DB_PASSWORD:-instapost123}@postgres:5432/instapost
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: '9000'
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin_secret}
+      MINIO_USE_SSL: 'false'
+      MINIO_BUCKET: instapost-images
+      MINIO_PUBLIC_URL: http://localhost:9000
+      SCRIPTS_DIR: /app
     volumes:
       - videowork:/tmp/instapost-videos
-      - ./scripts/video:/app/scripts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
