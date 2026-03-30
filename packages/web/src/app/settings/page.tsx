@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../components/AuthProvider';
 import {
-  Camera, Zap, Send, Monitor, LogOut, CheckCircle, XCircle,
+  Camera, Zap, Send, Monitor, LogOut, CheckCircle, XCircle, Plus, Trash2,
   Loader2, Eye, EyeOff, Save, Copy, Check, ExternalLink, Hexagon,
 } from 'lucide-react';
 
@@ -26,16 +26,14 @@ interface ServiceConfig {
 
 const SERVICES: ServiceConfig[] = [
   {
-    name: 'Instagram',
-    description: 'Publicacao automatica de posts no Instagram via Graph API',
+    name: 'Facebook App (para token Instagram)',
+    description: 'Necessario para trocar token short-lived por long-lived (60 dias)',
     icon: Camera,
-    iconBg: 'bg-gradient-to-br from-pink-50 to-purple-50',
-    iconColor: 'text-pink-500',
+    iconBg: 'bg-blue-50',
+    iconColor: 'text-blue-600',
     fields: [
-      { key: 'INSTAGRAM_ACCESS_TOKEN', label: 'Access Token', placeholder: 'EAAxxxxxxx...' },
-      { key: 'INSTAGRAM_USER_ID', label: 'User ID', placeholder: '17841400xxxxx' },
-      { key: 'FACEBOOK_APP_ID', label: 'Facebook App ID', placeholder: '953530xxxxxxx' },
-      { key: 'FACEBOOK_APP_SECRET', label: 'Facebook App Secret', placeholder: 'Chave secreta do app' },
+      { key: 'FACEBOOK_APP_ID', label: 'App ID', placeholder: '953530xxxxxxx (topo do Facebook Developer)' },
+      { key: 'FACEBOOK_APP_SECRET', label: 'App Secret', placeholder: 'Chave secreta do app do Instagram' },
     ],
   },
   {
@@ -73,9 +71,50 @@ export default function SettingsPage() {
   const [cookieUploading, setCookieUploading] = useState(false);
   const [cookieSaved, setCookieSaved] = useState(false);
 
+  // Instagram accounts
+  const [igAccounts, setIgAccounts] = useState<any[]>([]);
+  const [showAddIg, setShowAddIg] = useState(false);
+  const [igToken, setIgToken] = useState('');
+  const [igUserId, setIgUserId] = useState('');
+  const [igAdding, setIgAdding] = useState(false);
+
   useEffect(() => {
     loadSettings();
+    loadIgAccounts();
   }, []);
+
+  async function loadIgAccounts() {
+    try {
+      const res: any = await api.listInstagramAccounts();
+      setIgAccounts(Array.isArray(res) ? res : res?.data || []);
+    } catch {}
+  }
+
+  async function handleAddIgAccount() {
+    if (!igToken || !igUserId) return;
+    setIgAdding(true);
+    try {
+      await api.addInstagramAccount({ accessToken: igToken, instagramUserId: igUserId });
+      setIgToken(''); setIgUserId(''); setShowAddIg(false);
+      await loadIgAccounts();
+    } catch {}
+    setIgAdding(false);
+  }
+
+  async function handleSetDefaultIg(id: string) {
+    try {
+      await api.setDefaultInstagramAccount(id);
+      await loadIgAccounts();
+    } catch {}
+  }
+
+  async function handleDeleteIg(id: string) {
+    if (!confirm('Remover esta conta do Instagram?')) return;
+    try {
+      await api.deleteInstagramAccount(id);
+      await loadIgAccounts();
+    } catch {}
+  }
 
   async function loadSettings() {
     try {
@@ -215,6 +254,109 @@ export default function SettingsPage() {
 
       {/* API Keys */}
       <div className="space-y-4 mb-8">
+        <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-3">Contas do Instagram</p>
+        <div className="card p-5 mb-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center flex-shrink-0">
+              <Camera className="w-6 h-6 text-pink-500" strokeWidth={1.5} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-text-primary">Instagram</h3>
+                  <p className="text-xs text-text-secondary">Gerencie contas para publicacao automatica</p>
+                </div>
+                <button
+                  onClick={() => setShowAddIg(!showAddIg)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Adicionar Conta
+                </button>
+              </div>
+
+              {/* Add account form */}
+              {showAddIg && (
+                <div className="p-4 rounded-lg bg-bg-main space-y-3 mb-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-text-muted mb-1">Access Token</label>
+                    <input
+                      value={igToken}
+                      onChange={(e) => setIgToken(e.target.value)}
+                      className="input-field text-xs"
+                      placeholder="IGAA... (gere no Facebook Developer)"
+                      type="password"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-text-muted mb-1">Instagram User ID</label>
+                    <input
+                      value={igUserId}
+                      onChange={(e) => setIgUserId(e.target.value)}
+                      className="input-field text-xs"
+                      placeholder="17841480xxxxxxxxx"
+                    />
+                  </div>
+                  <p className="text-[10px] text-text-muted">
+                    O token sera trocado automaticamente por um long-lived (60 dias) se voce configurou o Facebook App ID e Secret abaixo.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleAddIgAccount}
+                      disabled={!igToken || !igUserId || igAdding}
+                      className="btn-cta text-xs"
+                    >
+                      {igAdding ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</> : 'Adicionar'}
+                    </button>
+                    <button onClick={() => { setShowAddIg(false); setIgToken(''); setIgUserId(''); }} className="btn-ghost text-xs">
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Account list */}
+              {igAccounts.length === 0 && !showAddIg && (
+                <p className="text-xs text-text-muted">Nenhuma conta adicionada. Clique em "Adicionar Conta".</p>
+              )}
+              {igAccounts.map((acc) => (
+                <div key={acc.id} className="flex items-center gap-3 p-3 rounded-lg bg-bg-main mb-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                    {(acc.username || '?')[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-text-primary">@{acc.username || acc.instagramUserId}</p>
+                      {acc.isDefault && (
+                        <span className="px-1.5 py-0.5 rounded bg-primary/10 text-[10px] font-bold text-primary">PADRAO</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-text-muted">
+                      Expira: {new Date(acc.expiresAt).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {!acc.isDefault && (
+                      <button
+                        onClick={() => handleSetDefaultIg(acc.id)}
+                        className="px-2 py-1 rounded text-[10px] font-semibold text-primary hover:bg-primary/10 transition-colors"
+                      >
+                        Tornar padrao
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteIg(acc.id)}
+                      className="p-1.5 rounded text-text-muted hover:text-status-failed hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Chaves de API</p>
 
         {SERVICES.map((service) => {

@@ -236,6 +236,15 @@ export const api = {
   updateSetting: (key: string, value: string) =>
     request('/api/settings', { method: 'PUT', body: JSON.stringify({ key, value }) }),
   deleteSetting: (key: string) => request(`/api/settings/${key}`, { method: 'DELETE' }),
+
+  // Instagram Accounts
+  listInstagramAccounts: () => request<any[]>('/api/instagram/accounts'),
+  addInstagramAccount: (body: { accessToken: string; instagramUserId: string; username?: string }) =>
+    request('/api/instagram/accounts', { method: 'POST', body: JSON.stringify(body) }),
+  setDefaultInstagramAccount: (id: string) =>
+    request(`/api/instagram/accounts/${id}/default`, { method: 'PUT' }),
+  deleteInstagramAccount: (id: string) =>
+    request(`/api/instagram/accounts/${id}`, { method: 'DELETE' }),
   uploadYoutubeCookies: async (file: File) => {
     const formData = new FormData();
     formData.append('cookies', file);

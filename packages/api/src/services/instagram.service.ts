@@ -224,18 +224,47 @@ async function publishCarousel(
   return await publishContainer(carouselData.id, token, igUserId);
 }
 
-export async function publishToInstagram(postId: string) {
+export async function publishToInstagram(postId: string, accountId?: string) {
   const post = await prisma.post.findUniqueOrThrow({
     where: { id: postId },
     include: { images: { orderBy: { order: 'asc' } } },
   });
 
-  if (!env.INSTAGRAM_ACCESS_TOKEN || !env.INSTAGRAM_USER_ID) {
-    throw new Error('Instagram credentials not configured');
+  // Try to get token from database first (supports multiple accounts)
+  let token: string | undefined;
+  let igUserId: string | undefined;
+
+  if (accountId) {
+    // Specific account requested
+    const account = await prisma.instagramToken.findUnique({ where: { id: accountId } });
+    if (account) { token = account.accessToken; igUserId = account.instagramUserId; }
   }
 
-  const token = env.INSTAGRAM_ACCESS_TOKEN;
-  const igUserId = env.INSTAGRAM_USER_ID;
+  if (!token) {
+    // Try default account for this user
+    const userId = post.userId;
+    const defaultAccount = await prisma.instagramToken.findFirst({
+      where: { userId, isDefault: true },
+    });
+    if (defaultAccount) { token = defaultAccount.accessToken; igUserId = defaultAccount.instagramUserId; }
+  }
+
+  if (!token) {
+    // Try any account for this user
+    const userId = post.userId;
+    const anyAccount = await prisma.instagramToken.findFirst({ where: { userId } });
+    if (anyAccount) { token = anyAccount.accessToken; igUserId = anyAccount.instagramUserId; }
+  }
+
+  if (!token) {
+    // Fallback to env vars
+    token = env.INSTAGRAM_ACCESS_TOKEN;
+    igUserId = env.INSTAGRAM_USER_ID;
+  }
+
+  if (!token || !igUserId) {
+    throw new Error('Instagram credentials not configured. Add an account in Settings.');
+  }
 
   const caption = [post.caption, post.hashtags.map((h) => `#${h}`).join(' ')]
     .filter(Boolean)

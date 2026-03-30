@@ -29,7 +29,7 @@ model User {
   funnels        Funnel[]
   videoClips     VideoClip[]
   settings       Setting[]
-  instagramToken InstagramToken?
+  instagramTokens InstagramToken[]
   invitations    Invitation[]
   allowedPages   String[]        @default([])
   createdAt      DateTime        @default(now())
@@ -100,11 +100,15 @@ model InstagramToken {
   id              String   @id @default(uuid())
   accessToken     String
   instagramUserId String
+  username        String?
   pageId          String?
+  isDefault       Boolean  @default(false)
   expiresAt       DateTime
   refreshedAt     DateTime @default(now())
-  userId          String   @unique
+  userId          String
   user            User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 enum PostStatus {

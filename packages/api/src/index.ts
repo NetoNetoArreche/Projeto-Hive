@@ -13,6 +13,7 @@ import teamRoutes from './routes/team.routes';
 import funnelRoutes from './routes/funnel.routes';
 import videoRoutes from './routes/video.routes';
 import settingsRoutes from './routes/settings.routes';
+import instagramRoutes from './routes/instagram.routes';
 import { publishWorker } from './jobs/publish.worker';
 import { tokenRefreshWorker, initTokenRefreshJob } from './jobs/token-refresh.worker';
 import { taskReminderWorker } from './jobs/task-reminder.worker';
@@ -34,6 +35,7 @@ app.use('/api/team', teamRoutes);
 app.use('/api/funnels', funnelRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/instagram', instagramRoutes);
 
 // Health check with env diagnostics
 app.get('/api/health', (_req, res) => {
