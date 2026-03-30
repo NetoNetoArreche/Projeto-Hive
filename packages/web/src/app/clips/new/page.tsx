@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { api } from '../../../lib/api';
+import { api, getToken } from '../../../lib/api';
 import { ArrowLeft, Loader2, Film, Sparkles, Youtube, Upload } from 'lucide-react';
 
 export default function NewClipPage() {
@@ -37,10 +37,21 @@ export default function NewClipPage() {
     }
     setLoading(true);
     setError('');
-    setUploadProgress('Enviando video...');
+    setUploadProgress(`Enviando ${(file.size / 1024 / 1024).toFixed(0)}MB...`);
     try {
-      const res: any = await api.uploadVideoFile(file, file.name);
-      const id = res.id;
+      // Send directly to API to bypass Next.js proxy body size limit
+      const formData = new FormData();
+      formData.append('video', file);
+      formData.append('title', file.name);
+      const headers: Record<string, string> = {};
+      const t = getToken();
+      if (t) headers['Authorization'] = `Bearer ${t}`;
+
+      const uploadRes = await fetch('/api/videos/upload', { method: 'POST', headers, body: formData });
+      const data = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(data?.error || 'Upload failed');
+
+      const id = data?.data?.id || data?.id;
       router.push(`/clips/${id}`);
     } catch (err: any) {
       setError(err.message || 'Erro ao enviar video');

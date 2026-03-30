@@ -40,7 +40,30 @@ def download_with_cobalt(url: str, output_path: str) -> bool:
     import urllib.request
     import urllib.error
 
-    cobalt_url = "https://api.cobalt.tools"
+    # Try multiple cobalt instances
+    cobalt_instances = [
+        "https://api.cobalt.tools",
+        "https://cobalt-api.kwiatekmiki.com",
+        "https://cobalt.api.timelessnesses.me",
+    ]
+
+    for cobalt_url in cobalt_instances:
+        try:
+            result = _try_cobalt_instance(cobalt_url, url, output_path)
+            if result:
+                return True
+        except Exception as e:
+            print(f"[cobalt] {cobalt_url} failed: {e}")
+            continue
+
+    return False
+
+
+def _try_cobalt_instance(cobalt_url: str, url: str, output_path: str) -> bool:
+    """Try a single cobalt instance."""
+    import urllib.request
+    import urllib.error
+
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",

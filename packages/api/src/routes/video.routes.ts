@@ -47,7 +47,17 @@ router.post('/:id/cut', validate(cutSchema), cutClips);
 router.delete('/:id', deleteVideoClip);
 
 // Upload video file directly (no YouTube needed)
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 * 1024 } }); // 500MB max
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(os.tmpdir(), 'instapost-uploads');
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const upload = multer({ storage: diskStorage, limits: { fileSize: 500 * 1024 * 1024 } });
 router.post('/upload', upload.single('video'), async (req: AuthRequest, res: Response) => {
   try {
     if (!req.file) {
@@ -62,11 +72,11 @@ router.post('/upload', upload.single('video'), async (req: AuthRequest, res: Res
       data: { sourceUrl: 'upload://' + req.file.originalname, title, userId },
     });
 
-    // Save video file to work directory
+    // Move uploaded file to work directory
     const workDir = path.join(os.tmpdir(), 'instapost-videos', videoClip.id);
     fs.mkdirSync(workDir, { recursive: true });
     const videoPath = path.join(workDir, 'video.mp4');
-    fs.writeFileSync(videoPath, req.file.buffer);
+    fs.renameSync(req.file.path, videoPath);
 
     // Update workDir in DB
     await prisma.videoClip.update({ where: { id: videoClip.id }, data: { workDir } });
