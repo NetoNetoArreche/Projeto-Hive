@@ -14,6 +14,34 @@ router.use(authMiddleware);
 router.get('/accounts', async (req: AuthRequest, res: Response) => {
   try {
     const userId = await resolveOwnerId(req.userId!);
+
+    // Auto-migrate: if env has credentials but DB doesn't, save to DB
+    if (env.INSTAGRAM_ACCESS_TOKEN && env.INSTAGRAM_USER_ID) {
+      const existing = await prisma.instagramToken.findFirst({
+        where: { userId, instagramUserId: env.INSTAGRAM_USER_ID },
+      });
+      if (!existing) {
+        let username: string | undefined;
+        try {
+          const profileRes = await fetch(`https://graph.instagram.com/me?fields=username&access_token=${env.INSTAGRAM_ACCESS_TOKEN}`);
+          const profile = await profileRes.json() as any;
+          if (profile.username) username = profile.username;
+        } catch { /* ignore */ }
+
+        const count = await prisma.instagramToken.count({ where: { userId } });
+        await prisma.instagramToken.create({
+          data: {
+            accessToken: env.INSTAGRAM_ACCESS_TOKEN,
+            instagramUserId: env.INSTAGRAM_USER_ID,
+            username,
+            isDefault: count === 0,
+            expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+            userId,
+          },
+        });
+      }
+    }
+
     const accounts = await prisma.instagramToken.findMany({
       where: { userId },
       select: {

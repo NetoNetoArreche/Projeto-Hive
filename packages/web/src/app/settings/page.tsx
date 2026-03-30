@@ -406,10 +406,11 @@ export default function SettingsPage() {
                                 onKeyDown={(e) => e.key === 'Enter' && handleSave(field.key)}
                               />
                               <button
-                                onClick={() => setShowValues((v) => ({ ...v, [field.key]: !show }))}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-primary"
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowValues((v) => ({ ...v, [field.key]: !v[field.key] })); }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-text-muted hover:text-text-primary z-10 cursor-pointer"
                               >
-                                {show ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                {showValues[field.key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               </button>
                             </div>
                             <button
