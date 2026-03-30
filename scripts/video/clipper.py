@@ -40,11 +40,16 @@ OUTPUT_PRESETS = {
 COOKIES_PATH = os.environ.get("YT_COOKIES_PATH", "/app/cookies.txt")
 
 
-def get_cookie_args() -> list:
-    """Return yt-dlp cookie arguments if cookies file exists."""
+def get_ytdlp_args() -> list:
+    """Return yt-dlp extra arguments for auth and bot bypass."""
+    args = [
+        "--extractor-args", "youtube:player_client=web",
+        "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "--no-check-certificates",
+    ]
     if os.path.exists(COOKIES_PATH):
-        return ["--cookies", COOKIES_PATH]
-    return []
+        args.extend(["--cookies", COOKIES_PATH])
+    return args
 
 
 def download_video(url: str, output_dir: str) -> str:
@@ -53,12 +58,12 @@ def download_video(url: str, output_dir: str) -> str:
     if os.path.exists(video_path):
         return video_path
 
-    cookies = get_cookie_args()
+    extra = get_ytdlp_args()
     cmd = [
         "yt-dlp",
         "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
         "--merge-output-format", "mp4",
-        *cookies,
+        *extra,
         "-o", video_path,
         url,
     ]

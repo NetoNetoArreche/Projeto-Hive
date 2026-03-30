@@ -1,4 +1,4 @@
 yt-dlp
 openai-whisper
-opencv-python
+opencv-python-headless
 Pillow
