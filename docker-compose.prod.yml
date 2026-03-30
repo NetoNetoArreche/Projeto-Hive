@@ -87,7 +87,7 @@ services:
       dockerfile: packages/bot/Dockerfile
     environment:
       API_URL: http://api:3001
-      API_TOKEN: instapost_service_2026
+      API_TOKEN: changeme
     depends_on:
       api:
         condition: service_healthy
@@ -117,7 +117,7 @@ services:
       MINIO_SECRET_KEY: minioadmin
       MINIO_USE_SSL: 'false'
       MINIO_BUCKET: instapost-images
-      MINIO_PUBLIC_URL: http://72.60.148.203:9000
+      MINIO_PUBLIC_URL: http://localhost:9000
       SCRIPTS_DIR: /app
       YT_COOKIES_PATH: /app/shared/cookies.txt
     volumes:

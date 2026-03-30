@@ -18,16 +18,15 @@ COPY --from=builder /app/packages/bot/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 
 ENV NODE_ENV=production
-ENV API_TOKEN=instapost_service_2026
 
+ARG API_TOKEN
 ARG API_URL
-ENV API_URL=${API_URL:-http://72.60.148.203:3001}
-
-# External config from Coolify build args
 ARG TELEGRAM_BOT_TOKEN
 ARG TELEGRAM_ALLOWED_CHAT_IDS
-ENV TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-8730348256:AAHg5c39kvhYlp5tAkmL_E_Zm_5xGNlfI98}
-ENV TELEGRAM_ALLOWED_CHAT_IDS=${TELEGRAM_ALLOWED_CHAT_IDS:-8708296835}
+ENV API_TOKEN=${API_TOKEN:-changeme}
+ENV API_URL=${API_URL:-http://api:3001}
+ENV TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+ENV TELEGRAM_ALLOWED_CHAT_IDS=${TELEGRAM_ALLOWED_CHAT_IDS}
 
 HEALTHCHECK --interval=60s --timeout=5s CMD node -e "process.exit(0)"
 CMD ["node", "dist/index.js"]

@@ -18,12 +18,13 @@ COPY --from=builder /app/packages/mcp/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 
 ENV NODE_ENV=production
-ENV API_URL=http://api:3001
-ENV API_TOKEN=instapost_service_2026
 
-# External config from Coolify build args
+ARG API_URL
+ARG API_TOKEN
 ARG MCP_AUTH_TOKEN
-ENV MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-dev_mcp_token}
+ENV API_URL=${API_URL:-http://api:3001}
+ENV API_TOKEN=${API_TOKEN:-changeme}
+ENV MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
 
 RUN apk add --no-cache wget
 EXPOSE 3002
