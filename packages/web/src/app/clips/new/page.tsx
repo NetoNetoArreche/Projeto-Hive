@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api, getToken } from '../../../lib/api';
-import { ArrowLeft, Loader2, Film, Sparkles, Youtube, Upload } from 'lucide-react';
+import { ArrowLeft, Loader2, Film, Sparkles, Youtube, Upload, Settings } from 'lucide-react';
 
 export default function NewClipPage() {
   const router = useRouter();
@@ -47,6 +47,7 @@ export default function NewClipPage() {
       const t = getToken();
       if (t) headers['Authorization'] = `Bearer ${t}`;
 
+      // Uses Next.js API route that streams to Express API (no body size limit)
       const uploadRes = await fetch('/api/videos/upload', { method: 'POST', headers, body: formData });
       const data = await uploadRes.json();
       if (!uploadRes.ok) throw new Error(data?.error || 'Upload failed');

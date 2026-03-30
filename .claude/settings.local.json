@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:UsershelioDownloadsr-agent-testeopensquadhive -type f \\\\\\(-name *.js -o -name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(xargs cat:*)"
+    ]
+  }
+}
