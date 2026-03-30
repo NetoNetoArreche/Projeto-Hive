@@ -68,6 +68,8 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [mcpCopied, setMcpCopied] = useState(false);
+  const [cookieUploading, setCookieUploading] = useState(false);
+  const [cookieSaved, setCookieSaved] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -289,6 +291,61 @@ export default function SettingsPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* YouTube Cookies */}
+      <div className="mb-8">
+        <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-3">YouTube Clips</p>
+        <div className="card p-5">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 00-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 00.5 6.2 31.5 31.5 0 000 12a31.5 31.5 0 00.5 5.8 3 3 0 002.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 002.1-2.1A31.5 31.5 0 0024 12a31.5 31.5 0 00-.5-5.8zM9.5 15.5v-7l6.3 3.5-6.3 3.5z"/></svg>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-sm font-bold text-text-primary">Cookies do YouTube</h3>
+                {settings['YOUTUBE_COOKIES']?.hasValue ? (
+                  <span className="badge badge-completed flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" strokeWidth={2} />
+                    Configurado
+                  </span>
+                ) : (
+                  <span className="badge badge-draft flex items-center gap-1">
+                    Nao configurado
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-text-secondary mb-3">
+                Necessario para baixar videos do YouTube. Exporte os cookies do seu navegador usando uma extensao como "Get cookies.txt LOCALLY".
+              </p>
+              <div className="flex items-center gap-2">
+                <label className="flex-1">
+                  <input
+                    type="file"
+                    accept=".txt"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setCookieUploading(true);
+                      try {
+                        await api.uploadYoutubeCookies(file);
+                        setCookieSaved(true);
+                        setTimeout(() => setCookieSaved(false), 3000);
+                        await loadSettings();
+                      } catch {}
+                      setCookieUploading(false);
+                    }}
+                  />
+                  <span className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors cursor-pointer">
+                    {cookieUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : cookieSaved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+                    {cookieUploading ? 'Enviando...' : cookieSaved ? 'Salvo!' : 'Enviar cookies.txt'}
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Account */}

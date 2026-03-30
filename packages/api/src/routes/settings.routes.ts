@@ -6,6 +6,9 @@ import { validate } from '../middleware/validate';
 import { prisma } from '../config/database';
 import { resolveOwnerId } from '../helpers/resolveOwnerId';
 import { env } from '../config/env';
+import multer from 'multer';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const router = Router();
 
@@ -17,9 +20,10 @@ const ALLOWED_KEYS = [
   'TELEGRAM_ALLOWED_CHAT_IDS',
   'MCP_AUTH_TOKEN',
   'MCP_URL',
+  'YOUTUBE_COOKIES',
 ];
 
-const NON_SECRET_KEYS = ['MCP_URL', 'TELEGRAM_ALLOWED_CHAT_IDS', 'INSTAGRAM_USER_ID'];
+const NON_SECRET_KEYS = ['MCP_URL', 'TELEGRAM_ALLOWED_CHAT_IDS', 'INSTAGRAM_USER_ID', 'YOUTUBE_COOKIES'];
 
 // Check if a key has a value in .env
 function getEnvValue(key: string): string | undefined {
@@ -92,6 +96,40 @@ router.put('/', validate(updateSchema), async (req: AuthRequest, res: Response) 
     });
 
     res.json({ success: true, data: { key, saved: true } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message });
+  }
+});
+
+// POST /api/settings/youtube-cookies - Upload YouTube cookies.txt
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+router.post('/youtube-cookies', upload.single('cookies'), async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, error: 'No file uploaded' });
+      return;
+    }
+
+    const content = req.file.buffer.toString('utf-8');
+
+    // Save to shared volume (accessible by video-worker)
+    const sharedPath = '/app/shared/cookies.txt';
+    // Also save to /app/cookies.txt as fallback
+    const fallbackPath = '/app/cookies.txt';
+
+    try { fs.mkdirSync('/app/shared', { recursive: true }); } catch { /* ignore */ }
+    try { fs.writeFileSync(sharedPath, content); } catch { /* ignore */ }
+    try { fs.writeFileSync(fallbackPath, content); } catch { /* ignore */ }
+
+    // Also save in DB for persistence
+    const userId = await resolveOwnerId(req.userId!);
+    await prisma.setting.upsert({
+      where: { userId_key: { userId, key: 'YOUTUBE_COOKIES' } },
+      create: { userId, key: 'YOUTUBE_COOKIES', value: 'uploaded' },
+      update: { value: 'uploaded' },
+    });
+
+    res.json({ success: true, data: { message: 'Cookies salvos com sucesso' } });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message });
   }

@@ -236,4 +236,19 @@ export const api = {
   updateSetting: (key: string, value: string) =>
     request('/api/settings', { method: 'PUT', body: JSON.stringify({ key, value }) }),
   deleteSetting: (key: string) => request(`/api/settings/${key}`, { method: 'DELETE' }),
+  uploadYoutubeCookies: async (file: File) => {
+    const formData = new FormData();
+    formData.append('cookies', file);
+    const headers: Record<string, string> = {};
+    const t = getToken();
+    if (t) headers['Authorization'] = `Bearer ${t}`;
+    const res = await fetch(`${BASE_URL}/api/settings/youtube-cookies`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'Upload failed');
+    return data?.data;
+  },
 };

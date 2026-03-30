@@ -37,6 +37,15 @@ OUTPUT_PRESETS = {
     "horizontal": {"width": 1920, "height": 1080},
 }
 
+COOKIES_PATH = os.environ.get("YT_COOKIES_PATH", "/app/cookies.txt")
+
+
+def get_cookie_args() -> list:
+    """Return yt-dlp cookie arguments if cookies file exists."""
+    if os.path.exists(COOKIES_PATH):
+        return ["--cookies", COOKIES_PATH]
+    return []
+
 
 def download_video(url: str, output_dir: str) -> str:
     """Download video if not already present."""
@@ -44,10 +53,12 @@ def download_video(url: str, output_dir: str) -> str:
     if os.path.exists(video_path):
         return video_path
 
+    cookies = get_cookie_args()
     cmd = [
         "yt-dlp",
         "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
         "--merge-output-format", "mp4",
+        *cookies,
         "-o", video_path,
         url,
     ]

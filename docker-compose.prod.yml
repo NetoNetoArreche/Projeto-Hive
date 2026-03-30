@@ -53,6 +53,8 @@ services:
       dockerfile: packages/api/Dockerfile
     ports:
       - '3001:3001'
+    volumes:
+      - shared-data:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
@@ -117,6 +119,9 @@ services:
       MINIO_BUCKET: instapost-images
       MINIO_PUBLIC_URL: http://72.60.148.203:9000
       SCRIPTS_DIR: /app
+      YT_COOKIES_PATH: /app/shared/cookies.txt
+    volumes:
+      - shared-data:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
@@ -130,3 +135,4 @@ volumes:
   pgdata:
   redisdata:
   miniodata:
+  shared-data:
