@@ -324,7 +324,7 @@ O YouTube bloqueia downloads de servidores. Voce precisa exportar cookies do seu
 4. O OpenHive aparece na lista com 24 tools disponiveis
 
 **No Claude Cowork (plugin com skills):**
-1. Baixe o ZIP do plugin OpenHive (disponivel na aba Releases do repositorio)
+1. [Baixe o ZIP do plugin OpenHive aqui](https://drive.google.com/drive/folders/1VeyeIXuZrkkrRDWjv-jv0ph6biKOXPP4?usp=sharing)
 2. Extraia o ZIP numa pasta local
 3. No Claude Code, execute os comandos:
 ```bash
