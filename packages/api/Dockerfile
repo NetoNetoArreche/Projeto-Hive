@@ -73,6 +73,4 @@ ENV MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL:-http://localhost:9000}
 EXPOSE 3001
 HEALTHCHECK --interval=15s --timeout=10s --start-period=90s --retries=8 CMD wget -qO- http://localhost:3001/api/health || exit 1
 
-RUN printf '#!/bin/sh\nset -e\necho "[startup] Running migrations..."\nnpx prisma migrate deploy || true\necho "[startup] Starting video worker..."\nnode /app/scripts/video/worker.mjs 2>&1 &\necho "[startup] Starting API..."\nexec node /app/dist/index.js\n' > /app/start.sh && chmod +x /app/start.sh
-
-CMD ["/app/start.sh"]
+CMD ["sh", "-c", "npx prisma migrate deploy 2>&1 || true; node /app/scripts/video/worker.mjs 2>&1 & exec node /app/dist/index.js"]
