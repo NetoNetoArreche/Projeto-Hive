@@ -25,8 +25,8 @@ COPY --from=builder /app/node_modules ./node_modules
 # Internal Docker network config (matches docker-compose.prod.yml)
 ENV NODE_ENV=production
 ENV PORT=3001
-ENV DATABASE_URL=postgresql://instapost:changeme@postgres:5432/instapost
-ENV REDIS_URL=redis://:changeme@redis:6379
+# DATABASE_URL and REDIS_URL come from Coolify env vars
+# No defaults - must be configured in Coolify
 ENV MINIO_ENDPOINT=minio
 ENV MINIO_PORT=9000
 ENV MINIO_USE_SSL=false
