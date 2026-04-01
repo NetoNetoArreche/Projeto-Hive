@@ -121,4 +121,8 @@ export const api = {
   // Template image generation
   generateTemplate: (body: Record<string, unknown>) =>
     request<{ imageUrl: string }>('/api/generate/template', { method: 'POST', body: JSON.stringify(body) }),
+
+  // HTML to image rendering
+  renderHtml: (body: Record<string, unknown>) =>
+    request<{ imageUrl: string }>('/api/generate/html', { method: 'POST', body: JSON.stringify(body) }),
 };

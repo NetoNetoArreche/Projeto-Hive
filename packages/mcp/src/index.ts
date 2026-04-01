@@ -24,6 +24,7 @@ import { addModule } from './tools/addModule';
 import { updateModule } from './tools/updateModule';
 import { deleteModule } from './tools/deleteModule';
 import { generateTemplateImage } from './tools/generateTemplateImage';
+import { renderHtmlToImage } from './tools/renderHtmlToImage';
 import { analyzeYoutubeVideo } from './tools/analyzeYoutubeVideo';
 import { cutYoutubeClips } from './tools/cutYoutubeClips';
 import { listVideoClips } from './tools/listVideoClips';
@@ -382,6 +383,22 @@ function registerTools(server: McpServer) {
     },
     async (input) => {
       const result = await generateTemplateImage(input);
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ── HTML to Image ──
+
+  server.tool(
+    'render_html_to_image',
+    'Renderiza HTML/CSS/Tailwind em imagem PNG. Use para criar posts visuais com codigo HTML gerado pela IA. Suporta Tailwind CSS via CDN.',
+    {
+      html: z.string().describe('Codigo HTML completo do post (pode usar Tailwind CSS)'),
+      width: z.number().optional().describe('Largura em pixels (default: 1080)'),
+      height: z.number().optional().describe('Altura em pixels (default: 1080). Use 1350 para 4:5, 1920 para 9:16'),
+    },
+    async (input) => {
+      const result = await renderHtmlToImage(input);
       return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
     },
   );

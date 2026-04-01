@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate';
 import { generateImageController, generateCaptionController } from '../controllers/generate.controller';
-import { renderTemplateToImage } from '../services/template-renderer.service';
+import { renderTemplateToImage, renderHtmlToImage } from '../services/template-renderer.service';
 import { TEMPLATES } from '../services/templates';
 
 const router = Router();
@@ -49,6 +49,23 @@ router.post('/template', validate(templateSchema), async (req: AuthRequest, res:
 // List available templates
 router.get('/templates', (_req: AuthRequest, res: Response) => {
   res.json({ success: true, data: TEMPLATES });
+});
+
+// Render raw HTML/CSS/Tailwind to image (used by MCP from IDEs)
+const htmlSchema = z.object({
+  html: z.string().min(1),
+  width: z.number().optional().default(1080),
+  height: z.number().optional().default(1080),
+});
+
+router.post('/html', validate(htmlSchema), async (req: AuthRequest, res: Response) => {
+  try {
+    const { html, width, height } = req.body;
+    const result = await renderHtmlToImage(html, width, height);
+    res.json({ success: true, data: result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Failed to render HTML' });
+  }
 });
 
 export default router;

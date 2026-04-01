@@ -1,18 +1,7 @@
-import puppeteer from 'puppeteer';
 import { renderTemplate, TemplateInput } from './templates';
 import { uploadImage } from './storage.service';
 
-let browser: any = null;
-
-async function getBrowser() {
-  if (!browser) {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    });
-  }
-  return browser;
-}
+const RENDERER_URL = process.env.RENDERER_URL || 'http://renderer:3003';
 
 function getSize(aspectRatio: string): { width: number; height: number } {
   switch (aspectRatio) {
@@ -26,25 +15,31 @@ export async function renderTemplateToImage(input: TemplateInput): Promise<{ ima
   const html = renderTemplate(input);
   const { width, height } = getSize(input.aspectRatio || '1:1');
 
-  const b = await getBrowser();
-  const page = await b.newPage();
+  const res = await fetch(`${RENDERER_URL}/render`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ html, width, height }),
+  });
 
-  try {
-    await page.setViewport({ width, height });
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 15000 });
+  const data = await res.json() as any;
+  if (!data.success) throw new Error(data.error || 'Render failed');
 
-    const screenshot = await page.screenshot({ type: 'png' }) as Buffer;
-    const imageUrl = await uploadImage(screenshot, 'image/png');
-
-    return { imageUrl };
-  } finally {
-    await page.close();
-  }
+  const buffer = Buffer.from(data.image, 'base64');
+  const imageUrl = await uploadImage(buffer, 'image/png');
+  return { imageUrl };
 }
 
-export async function closeBrowser() {
-  if (browser) {
-    await browser.close();
-    browser = null;
-  }
+export async function renderHtmlToImage(html: string, width = 1080, height = 1080): Promise<{ imageUrl: string }> {
+  const res = await fetch(`${RENDERER_URL}/render`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ html, width, height }),
+  });
+
+  const data = await res.json() as any;
+  if (!data.success) throw new Error(data.error || 'Render failed');
+
+  const buffer = Buffer.from(data.image, 'base64');
+  const imageUrl = await uploadImage(buffer, 'image/png');
+  return { imageUrl };
 }

@@ -1,0 +1,9 @@
+FROM node:20-alpine
+RUN apk add --no-cache chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+WORKDIR /app
+RUN npm init -y && npm install puppeteer-core express
+COPY scripts/renderer/server.js .
+EXPOSE 3003
+CMD ["node", "server.js"]

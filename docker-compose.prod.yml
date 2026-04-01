@@ -121,6 +121,18 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  renderer:
+    build:
+      context: .
+      dockerfile: Dockerfile.renderer
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3003/health']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
 volumes:
   pgdata:
   redisdata:
