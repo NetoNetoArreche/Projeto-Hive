@@ -26,7 +26,7 @@ const postImageSchema = z.object({
 
 const createPostSchema = z.object({
   caption: z.string().max(2200).optional(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().optional(), // Allow comma-separated URLs from MCP clients
   imageSource: z.enum(['NANOBANA', 'UPLOAD', 'URL']).optional(),
   nanoPrompt: z.string().optional(),
   source: z.enum(['WEB', 'TELEGRAM', 'MCP']).optional(),

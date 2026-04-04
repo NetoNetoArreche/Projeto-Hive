@@ -1,0 +1,19 @@
+{
+  "name": "openhive-mcp-server",
+  "version": "1.1.0",
+  "description": "OpenHive AI MCP Server - Connect Claude, Antigravity, Cursor and other IDEs to your OpenHive instance",
+  "main": "index.js",
+  "bin": {
+    "openhive-mcp": "./index.js"
+  },
+  "keywords": ["mcp", "openhive", "claude", "antigravity", "ai", "social-media", "instagram"],
+  "license": "AGPL-3.0",
+  "author": "OpenHive",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NetoNetoArreche/Projeto-Hive"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

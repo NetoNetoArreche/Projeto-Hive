@@ -11,7 +11,20 @@ function paramId(req: AuthRequest): string {
 export async function createPost(req: AuthRequest, res: Response) {
   try {
     const userId = await resolveOwnerId(req.userId!);
-    const { images, ...postData } = req.body;
+    let { images, ...postData } = req.body;
+
+    // Auto-detect comma-separated URLs in imageUrl (MCP clients may concatenate URLs)
+    if (!images && postData.imageUrl && postData.imageUrl.includes(',http')) {
+      const urls = postData.imageUrl.split(',').map((u: string) => u.trim()).filter(Boolean);
+      if (urls.length >= 2) {
+        images = urls.map((url: string, idx: number) => ({
+          imageUrl: url,
+          order: idx,
+        }));
+        postData.imageUrl = urls[0]; // keep first as cover
+        console.log(`[createPost] Auto-converted ${urls.length} comma-separated URLs to carousel images`);
+      }
+    }
 
     const isCarousel = !!(images && images.length >= 2);
 
@@ -63,6 +76,49 @@ export async function listPosts(req: AuthRequest, res: Response) {
       }),
       prisma.post.count({ where }),
     ]);
+
+    // Auto-repair posts with comma-separated URLs in imageUrl but no PostImage records
+    for (const post of items) {
+      if (post.imageUrl && post.imageUrl.includes(',http') && (!post.images || post.images.length === 0)) {
+        const urls = post.imageUrl.split(',').map((u: string) => u.trim()).filter(Boolean);
+        if (urls.length >= 2) {
+          try {
+            await prisma.$transaction([
+              ...urls.map((url: string, idx: number) =>
+                prisma.postImage.create({
+                  data: {
+                    postId: post.id,
+                    imageUrl: url,
+                    order: idx,
+                    source: post.imageSource || 'NANOBANA',
+                  },
+                })
+              ),
+              prisma.post.update({
+                where: { id: post.id },
+                data: { isCarousel: true, imageUrl: urls[0] },
+              }),
+            ]);
+            // Update the in-memory post for this response
+            post.isCarousel = true;
+            post.imageUrl = urls[0];
+            post.images = urls.map((url: string, idx: number) => ({
+              id: `auto-${idx}`,
+              imageUrl: url,
+              order: idx,
+              postId: post.id,
+              source: post.imageSource || 'NANOBANA',
+              prompt: null,
+              minioKey: null,
+              createdAt: post.createdAt,
+            }));
+            console.log(`[listPosts] Auto-repaired carousel post ${post.id} with ${urls.length} images`);
+          } catch (repairErr) {
+            console.error(`[listPosts] Failed to auto-repair post ${post.id}:`, repairErr);
+          }
+        }
+      }
+    }
 
     res.json({ success: true, data: { items, total, page, limit: take } });
   } catch (err) {
