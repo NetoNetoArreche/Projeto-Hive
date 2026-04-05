@@ -645,6 +645,11 @@ FRONTEND_URL=https://app.seudominio.com
 
 ## Variaveis de Ambiente (.env)
 
+> **Se voce esta usando Easypanel ou Coolify, IGNORE esta secao.** Ela e para desenvolvimento local e VPS com SSH. No Easypanel/Coolify voce so precisa das 5 senhas descritas na secao de instalacao acima.
+
+<details>
+<summary>Referencia completa de variaveis (dev local / VPS)</summary>
+
 ```bash
 # === Banco de Dados ===
 DB_PASSWORD=senha_forte                    # Senha do Postgres
@@ -692,6 +697,8 @@ FACEBOOK_APP_SECRET=
 TELEGRAM_BOT_TOKEN=                        # Token do BotFather
 TELEGRAM_ALLOWED_CHAT_IDS=                 # IDs dos chats permitidos
 ```
+
+</details>
 
 ---
 
