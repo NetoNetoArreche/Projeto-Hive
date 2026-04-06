@@ -10,6 +10,8 @@ Crie posts com imagens e legendas geradas por IA, agende publicacoes, extraia cl
 
 - **Posts com IA** - Gera imagens (Google Gemini) e legendas, publica no Instagram
 - **Carrossel** - Crie carrosseis com 2-10 slides (HTML/Tailwind renderizado ou IA)
+- **Carrossel Misto** - Capa gerada por IA + slides em HTML/Template (melhor dos dois mundos)
+- **Brands** - Cadastre marcas com logo, cores, tom de voz e produtos. Aplique identidade visual automaticamente nos carrosseis
 - **Calendario** - Visualize e agende posts em calendario
 - **Tarefas** - Gerencie gravacoes e publicacoes com prioridades e prazos
 - **Projetos** - Organize conteudo em projetos com modulos
@@ -956,6 +958,46 @@ Novo Post > digite o tema > IA gera imagem e legenda > revise > publique ou agen
 ### Criar carrossel pelo MCP (IA)
 1. Chama `create_post({ image_prompts: ["slide 1", "slide 2", ...], caption: "..." })`
 2. As imagens sao geradas automaticamente via Gemini
+
+### Criar carrossel misto (capa IA + slides template)
+**Pela web:** Novo Post > aba **Misto** > gere a capa com IA e adicione slides template um a um.
+
+**Pelo MCP:**
+```
+create_mixed_carousel({
+  cover_prompt: "imagem vibrante sobre produtividade",
+  slides: [
+    { title: "Dica 1", subtitle: "...", template: "bold-gradient" },
+    { title: "Dica 2", subtitle: "...", template: "minimal-dark" }
+  ],
+  brand_id: "uuid-do-brand"  // opcional - aplica logo + cores automaticamente
+})
+```
+
+### Brands (identidade visual)
+Cadastre suas marcas para aplicar logo, cores e tom de voz automaticamente nos posts.
+
+**Pela web:**
+1. Menu lateral > **Brands** > **Novo Brand**
+2. Configure:
+   - **Nome** e **logo** (PNG/JPG/WebP)
+   - **Cor primaria** e **secundaria** (color picker)
+   - **Descricao** e **tom de voz** (educativo, descontraido, etc)
+   - **Produtos/servicos** (separados por virgula)
+   - **Hashtags padrao**
+3. Marque **brand padrao** para aplicar automaticamente
+
+**Pelo MCP** (em qualquer IDE):
+1. O agente chama `list_brands` para descobrir brands disponiveis
+2. Pergunta qual brand voce quer aplicar no post
+3. Passa `brand_id` para `create_mixed_carousel` ou `create_post`
+4. O OpenHive aplica automaticamente:
+   - **Logo** no canto inferior direito de cada slide template
+   - **Cores** do brand nos templates HTML
+   - **Tom de voz** na geracao da legenda
+   - **Hashtags padrao** mescladas as hashtags do post
+
+Exemplo de prompt no chat: *"Cria um carrossel sobre 5 dicas de produtividade usando o brand Buildix"*
 
 ### YouTube Clips
 1. Clips > Novo Clip > cole URL > Analisar
