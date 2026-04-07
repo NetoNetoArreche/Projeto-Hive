@@ -284,7 +284,7 @@ export default function SettingsPage() {
                           mcpServers: {
                             openhive: {
                               command: 'npx',
-                              args: ['-y', 'openhive-mcp-server@1.6.0'],
+                              args: ['-y', 'openhive-mcp-server@latest'],
                               env: {
                                 OPENHIVE_API_URL: apiUrl || 'https://api.seu-servidor.com',
                                 OPENHIVE_API_TOKEN: settings['MCP_TOKEN']?.value || 'seu-token-aqui',
@@ -310,7 +310,7 @@ export default function SettingsPage() {
     mcpServers: {
       openhive: {
         command: 'npx',
-        args: ['-y', 'openhive-mcp-server@1.6.0'],
+        args: ['-y', 'openhive-mcp-server@latest'],
         env: {
           OPENHIVE_API_URL: apiUrl || 'https://api.seu-servidor.com',
           OPENHIVE_API_TOKEN: settings['MCP_TOKEN']?.value || 'seu-token-aqui',
