@@ -149,6 +149,36 @@ export const api = {
     return data.data as { fileUrl: string; fileName: string; mimeType: string };
   },
 
+  uploadVideo: async (file: File, onProgress?: (pct: number) => void) => {
+    const formData = new FormData();
+    formData.append('video', file);
+    const t = getToken();
+
+    // Use XMLHttpRequest to support upload progress
+    return new Promise<{ videoUrl: string; videoMinioKey: string; sizeBytes: number; mimeType: string; fileName: string }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      });
+      xhr.addEventListener('load', () => {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) resolve(data.data);
+          else reject(new Error(data?.error || `Upload failed: ${xhr.status}`));
+        } catch {
+          reject(new Error('Resposta invalida do servidor'));
+        }
+      });
+      xhr.addEventListener('error', () => reject(new Error('Erro de rede ao enviar video')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload cancelado')));
+      xhr.open('POST', `${BASE_URL}/api/upload/video`);
+      if (t) xhr.setRequestHeader('Authorization', `Bearer ${t}`);
+      xhr.send(formData);
+    });
+  },
+
   instagramProfile: (accountId?: string) =>
     request<{
       profile: {

@@ -84,30 +84,42 @@ model Invitation {
 }
 
 model Post {
-  id          String      @id @default(uuid())
-  caption     String?
-  imageUrl    String?
-  imageSource ImageSource @default(NANOBANA)
-  nanoPrompt  String?
-  status      PostStatus  @default(DRAFT)
-  scheduledAt DateTime?
-  publishedAt DateTime?
-  instagramId String?
-  source      PostSource  @default(WEB)
-  hashtags    String[]
-  aspectRatio String      @default("1:1")
-  isCarousel  Boolean     @default(false)
-  driveLink   String?
-  fileUrl     String?
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
-  images      PostImage[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id              String      @id @default(uuid())
+  caption         String?
+  imageUrl        String?
+  imageSource     ImageSource @default(NANOBANA)
+  nanoPrompt      String?
+  status          PostStatus  @default(DRAFT)
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  instagramId     String?
+  source          PostSource  @default(WEB)
+  hashtags        String[]
+  aspectRatio     String      @default("1:1")
+  isCarousel      Boolean     @default(false)
+  mediaType       MediaType   @default(IMAGE)
+  videoUrl        String?
+  videoMinioKey   String?
+  videoDurationSec Int?
+  videoSizeBytes  Int?
+  keepMedia       Boolean     @default(false)
+  driveLink       String?
+  fileUrl         String?
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  images          PostImage[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   @@index([status])
   @@index([scheduledAt])
   @@index([userId])
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  CAROUSEL
 }
 
 model PostImage {

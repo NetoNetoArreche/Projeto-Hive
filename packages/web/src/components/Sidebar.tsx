@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, PlusSquare, FileText, Calendar, CheckSquare, FolderKanban, Settings, LogOut, Hexagon, Users, GitBranch, Film, Palette } from 'lucide-react';
+import { Home, PlusSquare, FileText, Calendar, CheckSquare, FolderKanban, Settings, LogOut, Hexagon, Users, GitBranch, Film, Palette, Video } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 
 const links = [
   { href: '/', label: 'Dashboard', icon: Home, page: 'dashboard' },
   { href: '/posts/new', label: 'Novo Post', icon: PlusSquare, page: 'posts' },
+  { href: '/posts/videos', label: 'Reels / Videos', icon: Video, page: 'posts' },
   { href: '/posts', label: 'Posts', icon: FileText, page: 'posts' },
   { href: '/calendar', label: 'Calendario', icon: Calendar, page: 'calendar' },
   { href: '/tasks', label: 'Tarefas', icon: CheckSquare, page: 'tasks' },

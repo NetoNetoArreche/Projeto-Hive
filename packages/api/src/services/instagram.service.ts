@@ -69,12 +69,12 @@ async function getPublicImageUrl(imageUrl: string): Promise<string> {
   return publicUrl;
 }
 
-async function pollContainerStatus(containerId: string, token: string) {
+async function pollContainerStatus(containerId: string, token: string, maxAttempts = 20, intervalMs = 3000) {
   console.log(`[Instagram] Polling container ${containerId}...`);
   let status = 'IN_PROGRESS';
   let attempts = 0;
-  while (status !== 'FINISHED' && attempts < 20) {
-    await sleep(3000);
+  while (status !== 'FINISHED' && attempts < maxAttempts) {
+    await sleep(intervalMs);
     const check = await fetch(
       `https://graph.instagram.com/v21.0/${containerId}?fields=status_code&access_token=${token}`,
     );
@@ -86,7 +86,7 @@ async function pollContainerStatus(containerId: string, token: string) {
     }
     attempts++;
   }
-  if (status !== 'FINISHED') throw new Error('Media processing timeout after 60s');
+  if (status !== 'FINISHED') throw new Error(`Media processing timeout after ${(maxAttempts * intervalMs) / 1000}s`);
 }
 
 async function publishContainer(containerId: string, token: string, igUserId: string) {
@@ -224,6 +224,38 @@ async function publishCarousel(
   return await publishContainer(carouselData.id, token, igUserId);
 }
 
+async function publishReel(videoUrl: string, caption: string, token: string, igUserId: string) {
+  console.log('[Instagram] Creating Reels container...');
+  console.log('[Instagram] User ID:', igUserId);
+  console.log('[Instagram] Video URL:', videoUrl);
+
+  // Step 1: Create media container with VIDEO/REELS
+  const createData = await withRetry(async () => {
+    const createRes = await fetch(`https://graph.instagram.com/v21.0/${igUserId}/media`, {
+      method: 'POST',
+      body: new URLSearchParams({
+        media_type: 'REELS',
+        video_url: videoUrl,
+        caption,
+        access_token: token,
+      }),
+    });
+    const data = (await createRes.json()) as any;
+    console.log('[Instagram] Create Reels container response:', JSON.stringify(data));
+    if (!data.id) {
+      throw new Error(`Failed to create Reels container: ${JSON.stringify(data)}`);
+    }
+    return data;
+  }, 'Create Reels container');
+
+  // Step 2: Poll for processing (videos take longer than images, ~30-90s)
+  // 40 attempts x 5s = 200s (3min 20s) max
+  await pollContainerStatus(createData.id, token, 40, 5000);
+
+  // Step 3: Publish
+  return await publishContainer(createData.id, token, igUserId);
+}
+
 export async function publishToInstagram(postId: string, accountId?: string) {
   const post = await prisma.post.findUniqueOrThrow({
     where: { id: postId },
@@ -269,6 +301,12 @@ export async function publishToInstagram(postId: string, accountId?: string) {
   const caption = [post.caption, post.hashtags.map((h) => `#${h}`).join(' ')]
     .filter(Boolean)
     .join('\n\n');
+
+  // Video (Reels)
+  if (post.mediaType === 'VIDEO') {
+    if (!post.videoUrl) throw new Error('Video post has no videoUrl');
+    return await publishReel(post.videoUrl, caption, token, igUserId);
+  }
 
   // Carousel or single image?
   if (post.isCarousel && post.images && post.images.length >= 2) {

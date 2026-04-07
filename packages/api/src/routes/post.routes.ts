@@ -34,6 +34,13 @@ const createPostSchema = z.object({
   aspectRatio: z.string().optional(),
   isCarousel: z.boolean().optional(),
   images: z.array(postImageSchema).min(2).max(10).optional(),
+  // Video fields
+  mediaType: z.enum(['IMAGE', 'VIDEO', 'CAROUSEL']).optional(),
+  videoUrl: z.string().url().optional(),
+  videoMinioKey: z.string().optional(),
+  videoDurationSec: z.number().int().optional(),
+  videoSizeBytes: z.number().int().optional(),
+  keepMedia: z.boolean().optional(),
 });
 
 const scheduleSchema = z.object({

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { uploadImage, uploadFile } from '../services/storage.service';
+import { uploadImage, uploadFile, uploadVideo } from '../services/storage.service';
 
 export async function uploadImageController(req: Request, res: Response) {
   try {
@@ -75,6 +75,43 @@ const ALLOWED_FILE_TYPES = [
   'image/png',
   'image/webp',
 ];
+
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-m4v'];
+const MAX_VIDEO_SIZE = 150 * 1024 * 1024; // 150MB
+
+export async function uploadVideoController(req: Request, res: Response) {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, error: 'No video uploaded' });
+      return;
+    }
+
+    if (!ALLOWED_VIDEO_TYPES.includes(req.file.mimetype)) {
+      res.status(400).json({ success: false, error: 'Tipo de video nao permitido (use MP4 ou MOV)' });
+      return;
+    }
+
+    if (req.file.size > MAX_VIDEO_SIZE) {
+      res.status(400).json({ success: false, error: `Video muito grande (max 150MB, atual: ${(req.file.size / 1024 / 1024).toFixed(1)}MB)` });
+      return;
+    }
+
+    const { videoUrl, key } = await uploadVideo(req.file.buffer, req.file.mimetype, req.file.originalname);
+    res.json({
+      success: true,
+      data: {
+        videoUrl,
+        videoMinioKey: key,
+        sizeBytes: req.file.size,
+        mimeType: req.file.mimetype,
+        fileName: req.file.originalname,
+      },
+    });
+  } catch (err: any) {
+    console.error('[uploadVideo] Error:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Failed to upload video' });
+  }
+}
 
 export async function uploadFileController(req: Request, res: Response) {
   try {
