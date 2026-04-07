@@ -107,18 +107,42 @@ async function pollContainerStatus(containerId: string, token: string, maxAttemp
   let attempts = 0;
   while (status !== 'FINISHED' && attempts < maxAttempts) {
     await sleep(intervalMs);
+    // Request all useful fields - status_code is the simple state, status has detailed message
     const check = await fetch(
-      `${base}/${containerId}?fields=status_code&access_token=${token}`,
+      `${base}/${containerId}?fields=status_code,status&access_token=${token}`,
     );
     const checkData = (await check.json()) as any;
     status = checkData.status_code;
-    console.log(`[Instagram] Poll #${attempts + 1}: ${status}`);
+    console.log(`[Instagram] Poll #${attempts + 1}: ${status} | full:`, JSON.stringify(checkData));
     if (status === 'ERROR') {
-      throw new Error(`Media processing failed: ${JSON.stringify(checkData)}`);
+      const detail = checkData.status || JSON.stringify(checkData);
+      throw new Error(`Media processing failed (Instagram error): ${detail}`);
+    }
+    if (status === 'EXPIRED') {
+      throw new Error(`Media container expired before publish: ${JSON.stringify(checkData)}`);
     }
     attempts++;
   }
   if (status !== 'FINISHED') throw new Error(`Media processing timeout after ${(maxAttempts * intervalMs) / 1000}s`);
+}
+
+/**
+ * Verify that a URL is publicly accessible (HEAD request, expects 200).
+ * This catches problems early before sending to Instagram, which gives
+ * cryptic ERROR responses when it can't fetch a media URL.
+ */
+async function verifyPublicUrl(url: string, label: string): Promise<void> {
+  console.log(`[Instagram] Verifying ${label} URL is public: ${url}`);
+  try {
+    const res = await fetch(url, { method: 'HEAD' });
+    console.log(`[Instagram] ${label} URL HEAD response: ${res.status} ${res.statusText}, content-type: ${res.headers.get('content-type')}, content-length: ${res.headers.get('content-length')}`);
+    if (!res.ok) {
+      throw new Error(`${label} URL not publicly accessible (HTTP ${res.status} ${res.statusText}). Instagram needs to download from this URL.`);
+    }
+  } catch (err: any) {
+    if (err.message?.includes('not publicly accessible')) throw err;
+    throw new Error(`${label} URL fetch failed: ${err.message}. Check that MinIO_PUBLIC_URL is reachable from the internet.`);
+  }
 }
 
 async function publishContainer(containerId: string, token: string, igUserId: string) {
@@ -173,6 +197,9 @@ async function publishSingleImage(imageUrl: string, caption: string, token: stri
   console.log('[Instagram] Stored User ID:', igUserId, '(using:', userPath, ')');
   console.log('[Instagram] Image URL:', publicImageUrl);
 
+  // Verify that the image URL is publicly accessible BEFORE asking Instagram to download it
+  await verifyPublicUrl(publicImageUrl, 'Image');
+
   const createData = await withRetry(async () => {
     const createRes = await fetch(`${base}/${userPath}/media`, {
       method: 'POST',
@@ -207,6 +234,11 @@ async function publishCarousel(
   for (const img of images) {
     const publicUrl = await getPublicImageUrl(img.imageUrl);
     publicUrls.push(publicUrl);
+  }
+
+  // Verify each carousel image URL is publicly accessible
+  for (let i = 0; i < publicUrls.length; i++) {
+    await verifyPublicUrl(publicUrls[i], `Carousel image ${i + 1}`);
   }
 
   // Step 2: Create individual container for each image with retry
@@ -282,6 +314,9 @@ async function publishVideoMedia(
   console.log('[Instagram] Token type:', token.startsWith('EAA') ? 'EAA (Facebook Business)' : 'IGAA (Instagram Login)');
   console.log('[Instagram] Stored User ID:', igUserId, '(using:', userPath, ')');
   console.log('[Instagram] Video URL:', videoUrl);
+
+  // Verify that the video URL is publicly accessible BEFORE asking Instagram to download it
+  await verifyPublicUrl(videoUrl, 'Video');
 
   // Step 1: Create media container - params differ per mode
   const createData = await withRetry(async () => {
