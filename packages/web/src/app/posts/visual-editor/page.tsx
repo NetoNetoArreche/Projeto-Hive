@@ -205,25 +205,25 @@ export default function VisualEditorPage() {
     setMessage('');
     try {
       const total = slides.length;
-      // Update slide numbers
       const updatedSlides = slides.map((s, i) => ({ ...s, slideNumber: i + 1, totalSlides: total }));
 
       const editorState = { slides: updatedSlides, brandId, aspectRatio, globalStyle };
       const hashtagList = hashtags.split(',').map((h) => h.trim()).filter(Boolean);
 
-      // Get first rendered image as cover, or use empty string (draft without render)
-      const coverUrl = updatedSlides.find((s) => s.renderedUrl)?.renderedUrl || '';
-      const renderedUrls = updatedSlides.map((s) => s.renderedUrl).filter(Boolean) as string[];
-      const isCarousel = renderedUrls.length >= 2;
+      // Best image per slide: renderedUrl > backgroundUrl > empty
+      const slideImages = updatedSlides.map((s) => s.renderedUrl || s.backgroundUrl || '');
+      const coverUrl = slideImages.find((u) => u) || '';
+      const validImages = slideImages.filter((u) => u);
+      const isCarousel = updatedSlides.length >= 2;
 
       if (currentPostId) {
-        // Update existing post
         const updatePayload: Record<string, unknown> = {
           caption,
           hashtags: hashtagList,
           aspectRatio,
           editorState,
           isCarousel,
+          mediaType: isCarousel ? 'CAROUSEL' : 'IMAGE',
         };
         if (coverUrl) updatePayload.imageUrl = coverUrl;
         if (action === 'schedule' && scheduledAt) {
@@ -232,21 +232,20 @@ export default function VisualEditorPage() {
         await api.updatePost(currentPostId, updatePayload);
         setMessage(action === 'schedule' ? 'Post agendado!' : 'Post salvo!');
       } else {
-        // Create new post
         const payload: Record<string, unknown> = {
           caption,
           hashtags: hashtagList,
           aspectRatio,
           editorState,
+          mediaType: isCarousel ? 'CAROUSEL' : 'IMAGE',
         };
         if (coverUrl) payload.imageUrl = coverUrl;
-        if (isCarousel) {
+        if (isCarousel && validImages.length >= 2) {
           payload.isCarousel = true;
-          payload.images = renderedUrls.map((u, i) => ({ imageUrl: u, order: i }));
+          payload.images = validImages.map((u, i) => ({ imageUrl: u, order: i }));
         }
         const post = (await api.createPost(payload)) as any;
         setCurrentPostId(post.id);
-        // Update URL so refresh preserves the post
         window.history.replaceState(null, '', `/posts/visual-editor?postId=${post.id}`);
         if (action === 'schedule' && scheduledAt) {
           await api.schedulePost(post.id, new Date(scheduledAt).toISOString());

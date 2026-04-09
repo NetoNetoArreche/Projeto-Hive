@@ -189,15 +189,25 @@ export default function PostsList() {
                           <Film className="w-3 h-3 text-white" strokeWidth={2.5} />
                         </div>
                       </div>
-                    ) : post.imageUrl ? (
+                    ) : (post.imageUrl || post.editorState?.slides?.[0]?.backgroundUrl) ? (
                       <div className="relative">
                         <img
-                          src={post.imageUrl}
+                          src={post.imageUrl || post.editorState?.slides?.[0]?.renderedUrl || post.editorState?.slides?.[0]?.backgroundUrl}
                           alt=""
                           className="w-11 h-11 rounded-thumb object-cover cursor-pointer hover:opacity-80 transition-opacity border border-border"
                           onClick={() => { setSelectedPost(post); setCarouselIndex(0); }}
                         />
-                        {post.isCarousel && (
+                        {(post.isCarousel || (post.editorState?.slides?.length ?? 0) >= 2) && (
+                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-sm">
+                            <Layers className="w-3 h-3 text-white" strokeWidth={2.5} />
+                          </div>
+                        )}
+                      </div>
+                    ) : post.editorState?.slides?.length ? (
+                      <div className="relative w-11 h-11 rounded-thumb bg-black flex items-center justify-center border border-border cursor-pointer"
+                        onClick={() => { setSelectedPost(post); setCarouselIndex(0); }}>
+                        <span className="text-white text-[9px] font-bold">{post.editorState.slides.length}s</span>
+                        {post.editorState.slides.length >= 2 && (
                           <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-sm">
                             <Layers className="w-3 h-3 text-white" strokeWidth={2.5} />
                           </div>
@@ -215,8 +225,10 @@ export default function PostsList() {
                           {post.publishMode === 'STORIES' ? 'Stories' : post.publishMode === 'FEED' ? 'Feed Video' : 'Reels'}
                         </span>
                       )}
-                      {post.isCarousel && post.images?.length > 0 && (
-                        <span className="text-[10px] text-text-muted">{post.images.length} imagens</span>
+                      {(post.isCarousel || (post.editorState?.slides?.length ?? 0) >= 2) && (
+                        <span className="text-[10px] text-text-muted">
+                          {post.images?.length || post.editorState?.slides?.length || 0} slides
+                        </span>
                       )}
                       {post.status === 'FAILED' && post.lastError && (
                         <p className="text-[10px] text-status-failed mt-1 max-w-xs truncate" title={post.lastError}>
