@@ -480,107 +480,10 @@ export default function VisualEditorPage() {
 
   // ── Render ──
   return (
-    <div className="max-w-[1800px] mx-auto animate-fade-in -mx-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <Link href="/posts" className="text-xs text-text-secondary hover:text-primary inline-flex items-center gap-1 mb-1">
-            <ChevronLeft className="w-3.5 h-3.5" /> Voltar
-          </Link>
-          <h1 className="text-page-title text-text-primary flex items-center gap-3">
-            Editor Visual
-            {currentPostId && <span className="text-[11px] font-semibold px-2 py-1 rounded-badge bg-primary/10 text-primary">EDITANDO</span>}
-            {loadingPost && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-bg-main rounded-lg p-0.5">
-            {(['1:1', '4:5', '9:16'] as AspectRatio[]).map((ar) => (
-              <button key={ar} onClick={() => setAspectRatio(ar)}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${aspectRatio === ar ? 'bg-bg-card text-primary shadow-sm' : 'text-text-muted'}`}
-              >{ar}</button>
-            ))}
-          </div>
-          <button onClick={handleRenderAll} disabled={renderingAll} className="btn-ghost text-xs">
-            {renderingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-            {renderingAll ? 'Renderizando...' : 'Renderizar'}
-          </button>
-          <button onClick={() => handleSavePost('draft')} disabled={savingPost} className="btn-ghost text-xs">
-            <Save className="w-3.5 h-3.5" /> Rascunho
-          </button>
-          <button onClick={() => handleSavePost('schedule')} disabled={savingPost || !scheduledAt} className="btn-cta text-xs">
-            <Save className="w-3.5 h-3.5" /> Agendar
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-12 gap-5">
-        {/* ── Left: Canvas ── */}
-        <div className="col-span-8 space-y-4">
-          {/* Slide thumbnails */}
-          <div className="card p-4 overflow-x-auto">
-            <div className="flex items-start gap-3 min-w-min">
-              {slides.map((slide, idx) => (
-                <div key={slide.id} onClick={() => setActiveIdx(idx)}
-                  className={`relative ${aspectClass} w-40 flex-shrink-0 rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${
-                    idx === activeIdx ? 'border-primary shadow-lg scale-105' : 'border-border hover:border-primary/50'
-                  }`}
-                  style={{ background: slide.backgroundUrl ? `url('${slide.backgroundUrl}') center/cover` : 'linear-gradient(135deg,#1a1a2e,#16213e)' }}
-                >
-                  <div className="absolute inset-0" style={{ background: `rgba(0,0,0,${slide.overlayOpacity})` }} />
-                  <div className="absolute inset-0 flex items-center justify-center p-2 text-center">
-                    <div>
-                      {slide.stat && <p className="text-white text-sm font-black" style={{ textShadow: '0 2px 8px rgba(0,0,0,.8)' }}>{slide.stat}</p>}
-                      <p className="text-white text-[10px] font-bold leading-tight" style={{ textShadow: '0 2px 8px rgba(0,0,0,.8)' }}>{slide.title}</p>
-                    </div>
-                  </div>
-                  <div className="absolute top-1 left-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">{idx + 1}</div>
-                  {slide.renderedUrl && <div className="absolute top-1 right-1 bg-emerald-500 text-white text-[7px] font-bold px-1 py-0.5 rounded">OK</div>}
-                  <button onClick={(e) => { e.stopPropagation(); removeSlide(slide.id); }}
-                    className="absolute bottom-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 rounded text-white flex items-center justify-center">
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-              {/* Add new slide dropdown */}
-              <div className={`${aspectClass} w-40 flex-shrink-0 rounded-xl border-2 border-dashed border-border hover:border-primary text-text-muted hover:text-primary flex flex-col items-center justify-center gap-1 transition-all cursor-pointer`}
-                onClick={() => addSlide('content')}>
-                <Plus className="w-5 h-5" />
-                <span className="text-[10px] font-semibold">Novo slide</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Big preview */}
-          <div className="card p-6">
-            <div className={`${aspectClass} w-full max-w-[600px] mx-auto rounded-xl overflow-hidden relative shadow-xl`}
-              style={{ background: active.backgroundUrl ? `url('${active.backgroundUrl}') center/cover` : 'linear-gradient(135deg,#1a1a2e,#16213e)' }}
-            >
-              <div className="absolute inset-0" style={{ background: `rgba(0,0,0,${active.overlayOpacity})` }} />
-              {/* Live preview from template */}
-              <div className="absolute inset-0" style={{
-                  transform: 'scale(0.556)', transformOrigin: 'top left',
-                  width: '1080px',
-                  height: aspectRatio === '9:16' ? '1920px' : aspectRatio === '4:5' ? '1350px' : '1080px',
-                }}
-                ref={() => { _buildAspectRatio = aspectRatio; _buildBrandLogoUrl = brandLogoUrl; }}
-                dangerouslySetInnerHTML={{ __html: buildSlideHtml(active) }}
-              />
-            </div>
-            <p className="text-center text-xs text-text-muted mt-3">
-              Slide {activeIdx + 1} / {slides.length} — {TEMPLATES.find((t) => t.id === active.template)?.name} — {active.renderedUrl ? 'renderizado' : 'preview ao vivo'}
-            </p>
-          </div>
-
-          {message && (
-            <div className={`px-4 py-3 rounded-btn border text-sm ${messageType === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-status-published' : 'bg-red-500/10 border-red-500/20 text-status-failed'}`}>
-              {message}
-            </div>
-          )}
-        </div>
-
-        {/* ── Right: Sidebar ── */}
-        <div className="col-span-4 space-y-3 sticky top-4 self-start max-h-[90vh] overflow-y-auto pr-1">
+    <div className="animate-fade-in">
+      {/* ── Fixed Right Properties Sidebar ── */}
+      <aside className="fixed right-0 top-0 h-full w-[320px] bg-bg-card border-l border-border z-20 flex flex-col">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {/* Brand */}
           <div className="card p-4">
             <h3 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -798,6 +701,101 @@ export default function VisualEditorPage() {
             </div>
           </div>
         </div>
+      </aside>
+
+      {/* ── Main Canvas Area (offset for both sidebars) ── */}
+      <div className="mr-[320px]">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <Link href="/posts" className="text-xs text-text-secondary hover:text-primary inline-flex items-center gap-1 mb-1">
+              <ChevronLeft className="w-3.5 h-3.5" /> Voltar
+            </Link>
+            <h1 className="text-page-title text-text-primary flex items-center gap-3">
+              Editor Visual
+              {currentPostId && <span className="text-[11px] font-semibold px-2 py-1 rounded-badge bg-primary/10 text-primary">EDITANDO</span>}
+              {loadingPost && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-bg-main rounded-lg p-0.5">
+              {(['1:1', '4:5', '9:16'] as AspectRatio[]).map((ar) => (
+                <button key={ar} onClick={() => setAspectRatio(ar)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${aspectRatio === ar ? 'bg-bg-card text-primary shadow-sm' : 'text-text-muted'}`}
+                >{ar}</button>
+              ))}
+            </div>
+            <button onClick={handleRenderAll} disabled={renderingAll} className="btn-ghost text-xs">
+              {renderingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+              {renderingAll ? 'Renderizando...' : 'Renderizar'}
+            </button>
+            <button onClick={() => handleSavePost('draft')} disabled={savingPost} className="btn-ghost text-xs">
+              <Save className="w-3.5 h-3.5" /> Rascunho
+            </button>
+            <button onClick={() => handleSavePost('schedule')} disabled={savingPost || !scheduledAt} className="btn-cta text-xs">
+              <Save className="w-3.5 h-3.5" /> Agendar
+            </button>
+          </div>
+        </div>
+
+        {/* Slide thumbnails */}
+        <div className="card p-4 overflow-x-auto mb-4">
+          <div className="flex items-start gap-3 min-w-min">
+            {slides.map((slide, idx) => (
+              <div key={slide.id} onClick={() => setActiveIdx(idx)}
+                className={`relative ${aspectClass} w-40 flex-shrink-0 rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${
+                  idx === activeIdx ? 'border-primary shadow-lg scale-105' : 'border-border hover:border-primary/50'
+                }`}
+                style={{ background: slide.backgroundUrl ? `url('${slide.backgroundUrl}') center/cover` : 'linear-gradient(135deg,#1a1a2e,#16213e)' }}
+              >
+                <div className="absolute inset-0" style={{ background: `rgba(0,0,0,${slide.overlayOpacity})` }} />
+                <div className="absolute inset-0 flex items-center justify-center p-2 text-center">
+                  <div>
+                    {slide.stat && <p className="text-white text-sm font-black" style={{ textShadow: '0 2px 8px rgba(0,0,0,.8)' }}>{slide.stat}</p>}
+                    <p className="text-white text-[10px] font-bold leading-tight" style={{ textShadow: '0 2px 8px rgba(0,0,0,.8)' }}>{slide.title}</p>
+                  </div>
+                </div>
+                <div className="absolute top-1 left-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">{idx + 1}</div>
+                {slide.renderedUrl && <div className="absolute top-1 right-1 bg-emerald-500 text-white text-[7px] font-bold px-1 py-0.5 rounded">OK</div>}
+                <button onClick={(e) => { e.stopPropagation(); removeSlide(slide.id); }}
+                  className="absolute bottom-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 rounded text-white flex items-center justify-center">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            <div className={`${aspectClass} w-40 flex-shrink-0 rounded-xl border-2 border-dashed border-border hover:border-primary text-text-muted hover:text-primary flex flex-col items-center justify-center gap-1 transition-all cursor-pointer`}
+              onClick={() => addSlide('content')}>
+              <Plus className="w-5 h-5" />
+              <span className="text-[10px] font-semibold">Novo slide</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Big preview */}
+        <div className="card p-6">
+          <div className={`${aspectClass} w-full max-w-[600px] mx-auto rounded-xl overflow-hidden relative shadow-xl`}
+            style={{ background: active.backgroundUrl ? `url('${active.backgroundUrl}') center/cover` : 'linear-gradient(135deg,#1a1a2e,#16213e)' }}
+          >
+            <div className="absolute inset-0" style={{ background: `rgba(0,0,0,${active.overlayOpacity})` }} />
+            <div className="absolute inset-0" style={{
+                transform: 'scale(0.556)', transformOrigin: 'top left',
+                width: '1080px',
+                height: aspectRatio === '9:16' ? '1920px' : aspectRatio === '4:5' ? '1350px' : '1080px',
+              }}
+              ref={() => { _buildAspectRatio = aspectRatio; _buildBrandLogoUrl = brandLogoUrl; }}
+              dangerouslySetInnerHTML={{ __html: buildSlideHtml(active) }}
+            />
+          </div>
+          <p className="text-center text-xs text-text-muted mt-3">
+            Slide {activeIdx + 1} / {slides.length} — {TEMPLATES.find((t) => t.id === active.template)?.name} — {active.renderedUrl ? 'renderizado' : 'preview ao vivo'}
+          </p>
+        </div>
+
+        {message && (
+          <div className={`mt-4 px-4 py-3 rounded-btn border text-sm ${messageType === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-status-published' : 'bg-red-500/10 border-red-500/20 text-status-failed'}`}>
+            {message}
+          </div>
+        )}
       </div>
     </div>
   );

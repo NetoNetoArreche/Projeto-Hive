@@ -23,20 +23,20 @@
 }
 
 .dark {
-  --bg-main: #0c0c14;
-  --bg-card: #16162a;
-  --bg-card-hover: #1e1e38;
-  --text-primary: #E8E6F0;
-  --text-secondary: #9A96B0;
-  --text-muted: #5C5875;
-  --border: #2a2a44;
-  --divider: #222240;
-  --shadow-color: rgba(0,0,0,0.3);
-  --input-bg: #1a1a30;
-  --subtle-bg: #1a1a30;
-  --hover-bg: rgba(108, 92, 231, 0.08);
-  --scrollbar-thumb: #2a2a44;
-  --scrollbar-hover: #3a3a5a;
+  --bg-main: #111111;
+  --bg-card: #1a1a1a;
+  --bg-card-hover: #222222;
+  --text-primary: #ebebeb;
+  --text-secondary: #999999;
+  --text-muted: #555555;
+  --border: #2e2e2e;
+  --divider: #252525;
+  --shadow-color: rgba(0,0,0,0.4);
+  --input-bg: #1e1e1e;
+  --subtle-bg: #1e1e1e;
+  --hover-bg: rgba(255,255,255,0.04);
+  --scrollbar-thumb: #333333;
+  --scrollbar-hover: #444444;
 }
 
 @layer base {
