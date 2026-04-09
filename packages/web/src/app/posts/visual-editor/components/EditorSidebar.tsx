@@ -321,290 +321,7 @@ export function EditorSidebar({
           </div>
         </CollapsibleSection>
 
-        {/* ── 2. Imagem de Fundo ── */}
-        <CollapsibleSection
-          title="Imagem de Fundo"
-          icon={<Image className="w-4 h-4" />}
-          defaultOpen
-        >
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleUploadBg(file);
-            }}
-          />
-
-          {/* Dropzone */}
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
-          >
-            <Upload className="w-6 h-6 mx-auto mb-2 text-text-muted" />
-            <p className="text-xs text-text-muted">Clique ou arraste</p>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={handlePasteImage}
-              className="flex-1 py-1.5 px-2 rounded border border-border text-xs text-text-secondary hover:bg-bg-hover transition-all flex items-center justify-center gap-1.5"
-            >
-              <Clipboard className="w-3.5 h-3.5" />
-              Colar Imagem
-            </button>
-            <button
-              onClick={handleGenerateBg}
-              disabled={genLoading === 'bg'}
-              className="flex-1 py-1.5 px-2 rounded border border-primary/30 bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              {genLoading === 'bg' ? 'Gerando...' : 'Gerar Imagem com IA'}
-            </button>
-          </div>
-
-          {/* Background prompt (only if no bg image) */}
-          {!active.backgroundUrl && (
-            <div>
-              <span className={labelClass}>PROMPT DA IMAGEM</span>
-              <textarea
-                className="input-field text-xs w-full mt-1 resize-none"
-                rows={2}
-                value={active.backgroundPrompt}
-                onChange={(e) => updateActive({ backgroundPrompt: e.target.value })}
-                placeholder="Descreva a imagem de fundo desejada..."
-              />
-            </div>
-          )}
-
-          {/* Preview + remove */}
-          {active.backgroundUrl && (
-            <div className="relative">
-              <img
-                src={active.backgroundUrl}
-                alt="bg preview"
-                className="w-full h-20 object-cover rounded border border-border"
-              />
-              <button
-                onClick={() => updateActive({ backgroundUrl: '' })}
-                className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-
-          {/* Position X */}
-          <div>
-            <div className="flex items-center justify-between">
-              <span className={labelClass}>POSICAO &#8592;&#8594;</span>
-              <span className="text-[10px] text-primary font-semibold">{active.backgroundX}</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={active.backgroundX}
-              onChange={(e) => updateActive({ backgroundX: Number(e.target.value) })}
-              className="w-full mt-1 accent-primary"
-            />
-          </div>
-
-          {/* Position Y */}
-          <div>
-            <div className="flex items-center justify-between">
-              <span className={labelClass}>POSICAO &#8593;&#8595;</span>
-              <span className="text-[10px] text-primary font-semibold">{active.backgroundY}</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={active.backgroundY}
-              onChange={(e) => updateActive({ backgroundY: Number(e.target.value) })}
-              className="w-full mt-1 accent-primary"
-            />
-          </div>
-
-          {/* Zoom */}
-          <div>
-            <div className="flex items-center justify-between">
-              <span className={labelClass}>ZOOM %</span>
-              <span className="text-[10px] text-primary font-semibold">{active.backgroundZoom}%</span>
-            </div>
-            <input
-              type="range"
-              min={50}
-              max={300}
-              value={active.backgroundZoom}
-              onChange={(e) => updateActive({ backgroundZoom: Number(e.target.value) })}
-              className="w-full mt-1 accent-primary"
-            />
-          </div>
-
-          {/* Flip H */}
-          <label className="flex items-center justify-between cursor-pointer">
-            <span className="text-[12px] text-text-primary">Espelhar horizontalmente</span>
-            <input
-              type="checkbox"
-              checked={active.backgroundFlipH || false}
-              onChange={(e) => updateActive({ backgroundFlipH: e.target.checked })}
-              className="w-4 h-4 rounded text-primary accent-primary"
-            />
-          </label>
-
-          {/* Opacity */}
-          <div>
-            <div className="flex items-center justify-between">
-              <span className={labelClass}>OPACIDADE %</span>
-              <span className="text-[10px] text-primary font-semibold">{active.backgroundOpacity ?? 100}</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={active.backgroundOpacity ?? 100}
-              onChange={(e) => updateActive({ backgroundOpacity: Number(e.target.value) })}
-              className="w-full mt-1 accent-primary"
-            />
-          </div>
-
-          {/* Infinite Carousel */}
-          <div className="space-y-1.5">
-            <button
-              onClick={() => updateActive({ infiniteCarousel: !active.infiniteCarousel })}
-              className={`w-full py-2 px-3 rounded-lg border text-[12px] font-semibold flex items-center justify-center gap-2 transition-all ${
-                active.infiniteCarousel
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-text-secondary hover:border-primary/30'
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-              {active.infiniteCarousel ? 'Carrossel Infinito (ativo)' : 'Carrossel Infinito'}
-            </button>
-            {active.infiniteCarousel && (
-              <p className="text-[10px] text-text-muted leading-relaxed">
-                Metade esquerda neste slide, metade direita no slide {activeIdx + 2}. Use Zoom % para ajustar o tamanho.
-              </p>
-            )}
-          </div>
-        </CollapsibleSection>
-
-        {/* ── 3. Sombra / Overlay ── */}
-        <CollapsibleSection
-          title="Sombra / Overlay"
-          icon={<Layers className="w-4 h-4" />}
-        >
-          {/* Style select */}
-          <div>
-            <span className={labelClass}>ESTILO</span>
-            <select
-              className="input-field text-xs w-full mt-1"
-              value={active.overlayStyle}
-              onChange={(e) => updateActive({ overlayStyle: e.target.value as any })}
-            >
-              {OVERLAY_STYLES.map((os) => (
-                <option key={os.id} value={os.id}>
-                  {os.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Opacity slider */}
-          <div>
-            <div className="flex items-center justify-between">
-              <span className={labelClass}>OPACIDADE</span>
-              <span className="text-[10px] text-primary font-semibold">
-                {Math.round(active.overlayOpacity * 100)}%
-              </span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={Math.round(active.overlayOpacity * 100)}
-              onChange={(e) => updateActive({ overlayOpacity: Number(e.target.value) / 100 })}
-              className="w-full mt-1 accent-primary"
-            />
-          </div>
-        </CollapsibleSection>
-
-        {/* ── 4. Fundo do Slide ── */}
-        <CollapsibleSection
-          title="Fundo do Slide"
-          icon={<PaintBucket className="w-4 h-4" />}
-        >
-          {/* Background color */}
-          <div>
-            <span className={labelClass}>COR DE FUNDO</span>
-            <div className="flex items-center gap-2 mt-1.5">
-              <input
-                type="color"
-                value={active.slideBgColor}
-                onChange={(e) => updateActive({ slideBgColor: e.target.value })}
-                className="w-8 h-8 rounded border border-border cursor-pointer"
-              />
-              <input
-                className="input-field text-xs flex-1"
-                value={active.slideBgColor}
-                onChange={(e) => updateActive({ slideBgColor: e.target.value })}
-                placeholder="#1a1a2e"
-              />
-            </div>
-          </div>
-
-          {/* Background pattern */}
-          <div>
-            <span className={labelClass}>PADRAO SOBRE O FUNDO</span>
-            <select
-              className="input-field text-xs w-full mt-1.5"
-              value={active.slideBgPattern}
-              onChange={(e) => updateActive({ slideBgPattern: e.target.value as any })}
-            >
-              {BG_PATTERNS.map((p) => (
-                <option key={p.id} value={p.id}>{p.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {active.slideBgPattern !== 'none' && (
-            <>
-              {/* Pattern size */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className={labelClass}>TAMANHO DO PADRAO</span>
-                  <span className="text-[10px] text-primary font-semibold">{active.slideBgPatternSize || 40}</span>
-                </div>
-                <input
-                  type="range" min={10} max={200} step={5}
-                  value={active.slideBgPatternSize || 40}
-                  onChange={(e) => updateActive({ slideBgPatternSize: Number(e.target.value) })}
-                  className="range-slider w-full"
-                />
-              </div>
-
-              {/* Pattern opacity */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className={labelClass}>OPACIDADE DO PADRAO</span>
-                  <span className="text-[10px] text-primary font-semibold">{active.slideBgPatternOpacity || 15}</span>
-                </div>
-                <input
-                  type="range" min={1} max={100} step={1}
-                  value={active.slideBgPatternOpacity || 15}
-                  onChange={(e) => updateActive({ slideBgPatternOpacity: Number(e.target.value) })}
-                  className="range-slider w-full"
-                />
-              </div>
-            </>
-          )}
-        </CollapsibleSection>
-
-        {/* ── 5. Titulo & Subtitulo ── */}
+        {/* ── 2. Titulo & Subtitulo ── */}
         <CollapsibleSection
           title="Titulo & Subtitulo"
           icon={<Type className="w-4 h-4" />}
@@ -905,7 +622,7 @@ export function EditorSidebar({
           </div>
         </CollapsibleSection>
 
-        {/* ── 6. Destaque de Palavra ── */}
+        {/* ── 3. Destaque de Palavra ── */}
         <CollapsibleSection
           title="Destaque de Palavra"
           icon={<Palette className="w-4 h-4" />}
@@ -1067,131 +784,295 @@ export function EditorSidebar({
           </button>
         </CollapsibleSection>
 
-        {/* ── 7. Badge ou Logo de Perfil ── */}
+        {/* ── 4. Imagem de Fundo ── */}
         <CollapsibleSection
-          title="Badge ou Logo de Perfil"
-          icon={<Badge className="w-4 h-4" />}
+          title="Imagem de Fundo"
+          icon={<Image className="w-4 h-4" />}
+          defaultOpen
         >
-          {/* Show profile badge */}
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 cursor-pointer flex-1">
-              <input
-                type="checkbox"
-                checked={active.showProfileBadge}
-                onChange={(e) => updateAllSlides({ showProfileBadge: e.target.checked })}
-                className="accent-primary"
-              />
-              <span className="text-xs text-text-secondary">
-                Exibir — slide {activeIdx + 1}
-              </span>
-            </label>
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleUploadBg(file);
+            }}
+          />
+
+          {/* Dropzone */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+          >
+            <Upload className="w-6 h-6 mx-auto mb-2 text-text-muted" />
+            <p className="text-xs text-text-muted">Clique ou arraste</p>
+          </div>
+
+          <div className="flex gap-2">
             <button
-              onClick={() => {
-                updateAllSlides({ showProfileBadge: !active.showProfileBadge });
-              }}
-              className="text-[10px] py-1 px-2 rounded border border-border text-text-muted hover:bg-bg-hover transition-all"
+              onClick={handlePasteImage}
+              className="flex-1 py-1.5 px-2 rounded border border-border text-xs text-text-secondary hover:bg-bg-hover transition-all flex items-center justify-center gap-1.5"
             >
-              Todos
+              <Clipboard className="w-3.5 h-3.5" />
+              Colar Imagem
+            </button>
+            <button
+              onClick={handleGenerateBg}
+              disabled={genLoading === 'bg'}
+              className="flex-1 py-1.5 px-2 rounded border border-primary/30 bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              {genLoading === 'bg' ? 'Gerando...' : 'Gerar Imagem com IA'}
             </button>
           </div>
 
-          {/* Logo / Marca section */}
-          <div className="border-t border-border pt-3">
-            <span className={labelClass}>LOGO / MARCA (PNG)</span>
+          {/* Background prompt (only if no bg image) */}
+          {!active.backgroundUrl && (
+            <div>
+              <span className={labelClass}>PROMPT DA IMAGEM</span>
+              <textarea
+                className="input-field text-xs w-full mt-1 resize-none"
+                rows={2}
+                value={active.backgroundPrompt}
+                onChange={(e) => updateActive({ backgroundPrompt: e.target.value })}
+                placeholder="Descreva a imagem de fundo desejada..."
+              />
+            </div>
+          )}
 
-            {/* Show logo checkbox */}
-            <div className="flex items-center gap-2 mt-2">
-              <label className="flex items-center gap-2 cursor-pointer flex-1">
-                <input
-                  type="checkbox"
-                  checked={active.showLogo}
-                  onChange={(e) => updateAllSlides({ showLogo: e.target.checked })}
-                  className="accent-primary"
-                />
-                <span className="text-xs text-text-secondary">
-                  Exibir logo — slide {activeIdx + 1}
-                </span>
-              </label>
+          {/* Preview + remove */}
+          {active.backgroundUrl && (
+            <div className="relative">
+              <img
+                src={active.backgroundUrl}
+                alt="bg preview"
+                className="w-full h-20 object-cover rounded border border-border"
+              />
               <button
-                onClick={() => {
-                  updateAllSlides({ showLogo: !active.showLogo });
-                }}
-                className="text-[10px] py-1 px-2 rounded border border-border text-text-muted hover:bg-bg-hover transition-all"
+                onClick={() => updateActive({ backgroundUrl: '' })}
+                className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all"
               >
-                Todos
+                <X className="w-3 h-3" />
               </button>
             </div>
+          )}
 
-            {/* Logo file input */}
+          {/* Position X */}
+          <div>
+            <div className="flex items-center justify-between">
+              <span className={labelClass}>POSICAO &#8592;&#8594;</span>
+              <span className="text-[10px] text-primary font-semibold">{active.backgroundX}</span>
+            </div>
             <input
-              ref={logoInputRef}
-              type="file"
-              accept="image/png,image/svg+xml"
-              className="hidden"
-              onChange={handleLogoFile}
+              type="range"
+              min={0}
+              max={100}
+              value={active.backgroundX}
+              onChange={(e) => updateActive({ backgroundX: Number(e.target.value) })}
+              className="w-full mt-1 accent-primary"
             />
+          </div>
 
-            <div className="flex gap-2 mt-2">
-              <div
-                onClick={() => logoInputRef.current?.click()}
-                className="flex-1 border-2 border-dashed border-border rounded p-3 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
-              >
-                <Upload className="w-4 h-4 mx-auto mb-1 text-text-muted" />
-                <p className="text-[10px] text-text-muted">Upload logo</p>
-              </div>
-              <button
-                onClick={handlePasteLogo}
-                className="py-2 px-3 rounded border border-border text-xs text-text-secondary hover:bg-bg-hover transition-all flex flex-col items-center justify-center gap-1"
-              >
-                <Clipboard className="w-3.5 h-3.5" />
-                <span className="text-[10px]">Colar Imagem</span>
-              </button>
+          {/* Position Y */}
+          <div>
+            <div className="flex items-center justify-between">
+              <span className={labelClass}>POSICAO &#8593;&#8595;</span>
+              <span className="text-[10px] text-primary font-semibold">{active.backgroundY}</span>
             </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={active.backgroundY}
+              onChange={(e) => updateActive({ backgroundY: Number(e.target.value) })}
+              className="w-full mt-1 accent-primary"
+            />
+          </div>
 
-            {/* Logo preview */}
-            {active.customLogoUrl && (
-              <div className="relative mt-2">
-                <img
-                  src={active.customLogoUrl}
-                  alt="Logo"
-                  className="w-12 h-12 object-contain rounded border border-border bg-black/20"
-                />
-                <button
-                  onClick={() => updateAllSlides({ customLogoUrl: '' })}
-                  className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center"
-                >
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </div>
+          {/* Zoom */}
+          <div>
+            <div className="flex items-center justify-between">
+              <span className={labelClass}>ZOOM %</span>
+              <span className="text-[10px] text-primary font-semibold">{active.backgroundZoom}%</span>
+            </div>
+            <input
+              type="range"
+              min={50}
+              max={300}
+              value={active.backgroundZoom}
+              onChange={(e) => updateActive({ backgroundZoom: Number(e.target.value) })}
+              className="w-full mt-1 accent-primary"
+            />
+          </div>
+
+          {/* Flip H */}
+          <label className="flex items-center justify-between cursor-pointer">
+            <span className="text-[12px] text-text-primary">Espelhar horizontalmente</span>
+            <input
+              type="checkbox"
+              checked={active.backgroundFlipH || false}
+              onChange={(e) => updateActive({ backgroundFlipH: e.target.checked })}
+              className="w-4 h-4 rounded text-primary accent-primary"
+            />
+          </label>
+
+          {/* Opacity */}
+          <div>
+            <div className="flex items-center justify-between">
+              <span className={labelClass}>OPACIDADE %</span>
+              <span className="text-[10px] text-primary font-semibold">{active.backgroundOpacity ?? 100}</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={active.backgroundOpacity ?? 100}
+              onChange={(e) => updateActive({ backgroundOpacity: Number(e.target.value) })}
+              className="w-full mt-1 accent-primary"
+            />
+          </div>
+
+          {/* Infinite Carousel */}
+          <div className="space-y-1.5">
+            <button
+              onClick={() => updateActive({ infiniteCarousel: !active.infiniteCarousel })}
+              className={`w-full py-2 px-3 rounded-lg border text-[12px] font-semibold flex items-center justify-center gap-2 transition-all ${
+                active.infiniteCarousel
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border text-text-secondary hover:border-primary/30'
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              {active.infiniteCarousel ? 'Carrossel Infinito (ativo)' : 'Carrossel Infinito'}
+            </button>
+            {active.infiniteCarousel && (
+              <p className="text-[10px] text-text-muted leading-relaxed">
+                Metade esquerda neste slide, metade direita no slide {activeIdx + 2}. Use Zoom % para ajustar o tamanho.
+              </p>
             )}
-
-            {/* Logo position */}
-            <div className="mt-2">
-              <span className={labelClass}>POSICAO DO LOGO</span>
-              <div className="flex gap-1 mt-1.5">
-                {([
-                  { id: '' as const, label: 'Nao' },
-                  { id: 'top-left' as const, label: 'S.E' },
-                  { id: 'top-right' as const, label: 'S.D' },
-                  { id: 'bottom-left' as const, label: 'I.E' },
-                  { id: 'bottom-right' as const, label: 'I.D' },
-                ] as { id: '' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'; label: string }[]).map((lp) => (
-                  <button
-                    key={lp.id}
-                    onClick={() => updateAllSlides({ logoPosition: lp.id })}
-                    className={`flex-1 text-[10px] py-1.5 rounded border transition-all ${
-                      active.logoPosition === lp.id ? btnActive : btnInactive
-                    }`}
-                  >
-                    {lp.label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </CollapsibleSection>
 
-        {/* ── 8. Estilo Global ── */}
+        {/* ── 5. Sombra / Overlay ── */}
+        <CollapsibleSection
+          title="Sombra / Overlay"
+          icon={<Layers className="w-4 h-4" />}
+        >
+          {/* Style select */}
+          <div>
+            <span className={labelClass}>ESTILO</span>
+            <select
+              className="input-field text-xs w-full mt-1"
+              value={active.overlayStyle}
+              onChange={(e) => updateActive({ overlayStyle: e.target.value as any })}
+            >
+              {OVERLAY_STYLES.map((os) => (
+                <option key={os.id} value={os.id}>
+                  {os.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Opacity slider */}
+          <div>
+            <div className="flex items-center justify-between">
+              <span className={labelClass}>OPACIDADE</span>
+              <span className="text-[10px] text-primary font-semibold">
+                {Math.round(active.overlayOpacity * 100)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(active.overlayOpacity * 100)}
+              onChange={(e) => updateActive({ overlayOpacity: Number(e.target.value) / 100 })}
+              className="w-full mt-1 accent-primary"
+            />
+          </div>
+        </CollapsibleSection>
+
+        {/* ── 6. Fundo do Slide ── */}
+        <CollapsibleSection
+          title="Fundo do Slide"
+          icon={<PaintBucket className="w-4 h-4" />}
+        >
+          {/* Background color */}
+          <div>
+            <span className={labelClass}>COR DE FUNDO</span>
+            <div className="flex items-center gap-2 mt-1.5">
+              <input
+                type="color"
+                value={active.slideBgColor}
+                onChange={(e) => updateActive({ slideBgColor: e.target.value })}
+                className="w-8 h-8 rounded border border-border cursor-pointer"
+              />
+              <input
+                className="input-field text-xs flex-1"
+                value={active.slideBgColor}
+                onChange={(e) => updateActive({ slideBgColor: e.target.value })}
+                placeholder="#1a1a2e"
+              />
+            </div>
+          </div>
+
+          {/* Background pattern */}
+          <div>
+            <span className={labelClass}>PADRAO SOBRE O FUNDO</span>
+            <select
+              className="input-field text-xs w-full mt-1.5"
+              value={active.slideBgPattern}
+              onChange={(e) => updateActive({ slideBgPattern: e.target.value as any })}
+            >
+              {BG_PATTERNS.map((p) => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {active.slideBgPattern !== 'none' && (
+            <>
+              {/* Pattern size */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className={labelClass}>TAMANHO DO PADRAO</span>
+                  <span className="text-[10px] text-primary font-semibold">{active.slideBgPatternSize || 40}</span>
+                </div>
+                <input
+                  type="range" min={10} max={200} step={5}
+                  value={active.slideBgPatternSize || 40}
+                  onChange={(e) => updateActive({ slideBgPatternSize: Number(e.target.value) })}
+                  className="range-slider w-full"
+                />
+              </div>
+
+              {/* Pattern opacity */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className={labelClass}>OPACIDADE DO PADRAO</span>
+                  <span className="text-[10px] text-primary font-semibold">{active.slideBgPatternOpacity || 15}</span>
+                </div>
+                <input
+                  type="range" min={1} max={100} step={1}
+                  value={active.slideBgPatternOpacity || 15}
+                  onChange={(e) => updateActive({ slideBgPatternOpacity: Number(e.target.value) })}
+                  className="range-slider w-full"
+                />
+              </div>
+            </>
+          )}
+        </CollapsibleSection>
+
+        {/* ── Separator: Global ── */}
+        <div className="my-3 pt-3 border-t border-border">
+          <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Global — Todos os slides</span>
+        </div>
+
+        {/* ── 7. Estilo Global ── */}
         <CollapsibleSection
           title="Estilo Global"
           icon={<Settings2 className="w-4 h-4" />}
@@ -1389,6 +1270,130 @@ export function EditorSidebar({
           </div>
         </CollapsibleSection>
 
+        {/* ── 8. Badge ou Logo de Perfil ── */}
+        <CollapsibleSection
+          title="Badge ou Logo de Perfil"
+          icon={<Badge className="w-4 h-4" />}
+        >
+          {/* Show profile badge */}
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer flex-1">
+              <input
+                type="checkbox"
+                checked={active.showProfileBadge}
+                onChange={(e) => updateAllSlides({ showProfileBadge: e.target.checked })}
+                className="accent-primary"
+              />
+              <span className="text-xs text-text-secondary">
+                Exibir — slide {activeIdx + 1}
+              </span>
+            </label>
+            <button
+              onClick={() => {
+                updateAllSlides({ showProfileBadge: !active.showProfileBadge });
+              }}
+              className="text-[10px] py-1 px-2 rounded border border-border text-text-muted hover:bg-bg-hover transition-all"
+            >
+              Todos
+            </button>
+          </div>
+
+          {/* Logo / Marca section */}
+          <div className="border-t border-border pt-3">
+            <span className={labelClass}>LOGO / MARCA (PNG)</span>
+
+            {/* Show logo checkbox */}
+            <div className="flex items-center gap-2 mt-2">
+              <label className="flex items-center gap-2 cursor-pointer flex-1">
+                <input
+                  type="checkbox"
+                  checked={active.showLogo}
+                  onChange={(e) => updateAllSlides({ showLogo: e.target.checked })}
+                  className="accent-primary"
+                />
+                <span className="text-xs text-text-secondary">
+                  Exibir logo — slide {activeIdx + 1}
+                </span>
+              </label>
+              <button
+                onClick={() => {
+                  updateAllSlides({ showLogo: !active.showLogo });
+                }}
+                className="text-[10px] py-1 px-2 rounded border border-border text-text-muted hover:bg-bg-hover transition-all"
+              >
+                Todos
+              </button>
+            </div>
+
+            {/* Logo file input */}
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/png,image/svg+xml"
+              className="hidden"
+              onChange={handleLogoFile}
+            />
+
+            <div className="flex gap-2 mt-2">
+              <div
+                onClick={() => logoInputRef.current?.click()}
+                className="flex-1 border-2 border-dashed border-border rounded p-3 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+              >
+                <Upload className="w-4 h-4 mx-auto mb-1 text-text-muted" />
+                <p className="text-[10px] text-text-muted">Upload logo</p>
+              </div>
+              <button
+                onClick={handlePasteLogo}
+                className="py-2 px-3 rounded border border-border text-xs text-text-secondary hover:bg-bg-hover transition-all flex flex-col items-center justify-center gap-1"
+              >
+                <Clipboard className="w-3.5 h-3.5" />
+                <span className="text-[10px]">Colar Imagem</span>
+              </button>
+            </div>
+
+            {/* Logo preview */}
+            {active.customLogoUrl && (
+              <div className="relative mt-2">
+                <img
+                  src={active.customLogoUrl}
+                  alt="Logo"
+                  className="w-12 h-12 object-contain rounded border border-border bg-black/20"
+                />
+                <button
+                  onClick={() => updateAllSlides({ customLogoUrl: '' })}
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Logo position */}
+            <div className="mt-2">
+              <span className={labelClass}>POSICAO DO LOGO</span>
+              <div className="flex gap-1 mt-1.5">
+                {([
+                  { id: '' as const, label: 'Nao' },
+                  { id: 'top-left' as const, label: 'S.E' },
+                  { id: 'top-right' as const, label: 'S.D' },
+                  { id: 'bottom-left' as const, label: 'I.E' },
+                  { id: 'bottom-right' as const, label: 'I.D' },
+                ] as { id: '' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'; label: string }[]).map((lp) => (
+                  <button
+                    key={lp.id}
+                    onClick={() => updateAllSlides({ logoPosition: lp.id })}
+                    className={`flex-1 text-[10px] py-1.5 rounded border transition-all ${
+                      active.logoPosition === lp.id ? btnActive : btnInactive
+                    }`}
+                  >
+                    {lp.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CollapsibleSection>
+
         {/* ── 9. Botoes / CTAs ── */}
         <CollapsibleSection
           title="Botoes / CTAs"
@@ -1480,6 +1485,11 @@ export function EditorSidebar({
             <p className="text-[11px] text-text-muted italic">Nenhum template salvo ainda.</p>
           )}
         </CollapsibleSection>
+
+        {/* ── Separator: Publish ── */}
+        <div className="my-3 pt-3 border-t border-border">
+          <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Publicar</span>
+        </div>
 
         {/* ── 11. Publicacao ── */}
         <CollapsibleSection
