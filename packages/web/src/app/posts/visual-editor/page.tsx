@@ -281,7 +281,7 @@ export default function VisualEditorPage() {
       />
 
       {/* ── Canvas Area ── */}
-      <div className="mr-[340px] flex flex-col h-[calc(100vh-6rem)]">
+      <div className="mr-[340px] flex flex-col" style={{ height: 'calc(100vh - 2rem)' }}>
         {/* Header bar */}
         <div className="flex items-center justify-between mb-3 flex-shrink-0">
           <div className="flex items-center gap-4">
@@ -325,21 +325,20 @@ export default function VisualEditorPage() {
           </div>
         </div>
 
-        {/* Slides horizontal strip — all slides side by side */}
+        {/* Slides horizontal strip — all slides side by side, height-driven */}
         <div className="flex-1 overflow-x-auto overflow-y-hidden">
-          <div className="flex items-start gap-5 h-full min-w-min py-2 px-1">
+          <div className="flex items-stretch gap-5 h-full min-w-min py-2 px-1">
             {slides.map((slide, idx) => {
               const isActive = idx === activeIdx;
               const previewH = aspectRatio === '9:16' ? '1920px' : aspectRatio === '4:5' ? '1350px' : '1080px';
-              const scaleRatio = aspectRatio === '9:16' ? 0.38 : aspectRatio === '4:5' ? 0.44 : 0.5;
-              const cardW = aspectRatio === '9:16' ? 'w-[410px]' : aspectRatio === '4:5' ? 'w-[475px]' : 'w-[540px]';
 
               return (
                 <div key={slide.id} onClick={() => setActiveIdx(idx)}
-                  className={`flex-shrink-0 ${cardW} cursor-pointer transition-all duration-200 ${isActive ? 'scale-[1.02]' : 'opacity-70 hover:opacity-90'}`}
+                  className={`flex-shrink-0 h-full cursor-pointer transition-all duration-200 ${isActive ? '' : 'opacity-60 hover:opacity-85'}`}
+                  style={{ aspectRatio: aspectRatio === '9:16' ? '9/16' : aspectRatio === '4:5' ? '4/5' : '1/1' }}
                 >
                   {/* Slide card */}
-                  <div className={`${aspectClass} w-full rounded-xl overflow-hidden relative shadow-lg border-2 transition-all ${
+                  <div className={`w-full h-full rounded-xl overflow-hidden relative shadow-lg border-2 transition-all ${
                     isActive ? 'border-primary shadow-primary/20' : 'border-transparent hover:border-border'
                   }`}
                     style={{
@@ -358,17 +357,26 @@ export default function VisualEditorPage() {
                         : `rgba(0,0,0,${slide.overlayOpacity})`
                     }} />
 
-                    {/* Live preview content */}
-                    <div className="absolute inset-0" style={{
-                        transform: `scale(${scaleRatio})`, transformOrigin: 'top left',
-                        width: '1080px',
-                        height: previewH,
-                      }}
-                      dangerouslySetInnerHTML={{ __html: buildSlideHtml(
-                        { ...slide, slideNumber: idx + 1, totalSlides: slides.length },
-                        { aspectRatio, brandLogoUrl, globalStyle }
-                      ) }}
-                    />
+                    {/* Live preview: 1080px source scaled to fit via wrapper */}
+                    <div className="absolute inset-0 overflow-hidden">
+                      <div style={{
+                          width: '1080px',
+                          height: previewH,
+                          transform: 'scale(var(--s))',
+                          transformOrigin: 'top left',
+                        }}
+                        ref={(el) => {
+                          if (el && el.parentElement) {
+                            const s = el.parentElement.offsetWidth / 1080;
+                            el.style.setProperty('--s', String(s));
+                          }
+                        }}
+                        dangerouslySetInnerHTML={{ __html: buildSlideHtml(
+                          { ...slide, slideNumber: idx + 1, totalSlides: slides.length },
+                          { aspectRatio, brandLogoUrl, globalStyle }
+                        ) }}
+                      />
+                    </div>
 
                     {/* Slide number badge */}
                     <div className={`absolute top-3 left-3 px-2 py-1 rounded-md text-[11px] font-bold ${
@@ -395,8 +403,9 @@ export default function VisualEditorPage() {
             })}
 
             {/* Add slide button */}
-            <div className={`flex-shrink-0 ${aspectRatio === '9:16' ? 'w-[410px]' : aspectRatio === '4:5' ? 'w-[475px]' : 'w-[540px]'}`}>
-              <div className={`${aspectClass} w-full rounded-xl border-2 border-dashed border-border hover:border-primary text-text-muted hover:text-primary flex flex-col items-center justify-center gap-2 transition-all cursor-pointer`}
+            <div className="flex-shrink-0 h-full"
+              style={{ aspectRatio: aspectRatio === '9:16' ? '9/16' : aspectRatio === '4:5' ? '4/5' : '1/1' }}>
+              <div className="w-full h-full rounded-xl border-2 border-dashed border-border hover:border-primary text-text-muted hover:text-primary flex flex-col items-center justify-center gap-2 transition-all cursor-pointer"
                 onClick={() => addSlide('content')}>
                 <Plus className="w-8 h-8" />
                 <span className="text-sm font-semibold">Novo slide</span>
