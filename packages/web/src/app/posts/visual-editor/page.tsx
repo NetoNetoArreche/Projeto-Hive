@@ -168,16 +168,16 @@ export default function VisualEditorPage() {
     setGenLoading(null);
   }
 
-  function resolveBackground(slide: SlideState, idx: number): { url: string; posX: string; posY: string; size: string; opacity: number; flip: boolean } {
-    const prevSlide = idx > 0 ? slides[idx - 1] : null;
+  function resolveBackground(slide: SlideState, idx: number, allSlides: SlideState[]): { url: string; posX: string; posY: string; size: string; opacity: number; flip: boolean } {
+    const prevSlide = idx > 0 ? allSlides[idx - 1] : null;
     const isInfiniteLeft = slide.infiniteCarousel && slide.backgroundUrl;
     const isInfiniteRight = prevSlide?.infiniteCarousel && prevSlide?.backgroundUrl;
 
     if (isInfiniteLeft) {
       return {
         url: slide.backgroundUrl,
-        posX: '0%', posY: `${slide.backgroundY ?? 50}%`,
-        size: `200% ${slide.backgroundZoom ?? 100}%`,
+        posX: 'left', posY: `${slide.backgroundY ?? 50}%`,
+        size: '200% auto',
         opacity: (slide.backgroundOpacity ?? 100) / 100,
         flip: slide.backgroundFlipH || false,
       };
@@ -185,8 +185,8 @@ export default function VisualEditorPage() {
     if (isInfiniteRight) {
       return {
         url: prevSlide!.backgroundUrl,
-        posX: '100%', posY: `${prevSlide!.backgroundY ?? 50}%`,
-        size: `200% ${prevSlide!.backgroundZoom ?? 100}%`,
+        posX: 'right', posY: `${prevSlide!.backgroundY ?? 50}%`,
+        size: '200% auto',
         opacity: (prevSlide!.backgroundOpacity ?? 100) / 100,
         flip: prevSlide!.backgroundFlipH || false,
       };
@@ -194,15 +194,15 @@ export default function VisualEditorPage() {
     return {
       url: slide.backgroundUrl,
       posX: `${slide.backgroundX ?? 50}%`, posY: `${slide.backgroundY ?? 50}%`,
-      size: `${slide.backgroundZoom ?? 100}%`,
+      size: `auto ${slide.backgroundZoom ?? 100}%`,
       opacity: (slide.backgroundOpacity ?? 100) / 100,
       flip: slide.backgroundFlipH || false,
     };
   }
 
-  async function renderSlide(slide: SlideState, idx: number): Promise<string> {
+  async function renderSlide(slide: SlideState, idx: number, allSlides: SlideState[]): Promise<string> {
     const contentHtml = buildSlideHtml(slide, { aspectRatio, brandLogoUrl, globalStyle });
-    const bg = resolveBackground(slide, idx);
+    const bg = resolveBackground(slide, idx, allSlides);
 
     // Build background as part of the HTML so we control position/zoom/flip/opacity
     const bgHtml = bg.url
@@ -240,11 +240,11 @@ export default function VisualEditorPage() {
     setMessage('');
     try {
       const total = slides.length;
+      const allSlides = slides.map((s, i) => ({ ...s, slideNumber: i + 1, totalSlides: total }));
       const updated: SlideState[] = [];
-      for (let i = 0; i < slides.length; i++) {
-        const slide = { ...slides[i], slideNumber: i + 1, totalSlides: total };
-        const url = await renderSlide(slide, i);
-        updated.push({ ...slide, renderedUrl: url });
+      for (let i = 0; i < allSlides.length; i++) {
+        const url = await renderSlide(allSlides[i], i, allSlides);
+        updated.push({ ...allSlides[i], renderedUrl: url });
       }
       setSlides(updated);
       setMessage(`${updated.length} slides renderizados!`);
@@ -259,20 +259,22 @@ export default function VisualEditorPage() {
     try {
       const total = slides.length;
 
+      // Prepare all slides first so resolveBackground can see neighbors
+      const allSlides = slides.map((s, i) => ({ ...s, slideNumber: i + 1, totalSlides: total }));
+
       // Render all slides that don't have a renderedUrl yet
       setMessage('Renderizando slides...');
       const finalSlides: SlideState[] = [];
-      for (let i = 0; i < slides.length; i++) {
-        const slide = { ...slides[i], slideNumber: i + 1, totalSlides: total };
+      for (let i = 0; i < allSlides.length; i++) {
+        const slide = allSlides[i];
         if (slide.renderedUrl) {
           finalSlides.push(slide);
         } else {
           setMessage(`Renderizando slide ${i + 1} de ${total}...`);
           try {
-            const url = await renderSlide(slide, i);
+            const url = await renderSlide(slide, i, allSlides);
             finalSlides.push({ ...slide, renderedUrl: url });
           } catch {
-            // If render fails, keep slide without renderedUrl
             finalSlides.push(slide);
           }
         }
@@ -424,18 +426,8 @@ export default function VisualEditorPage() {
               const isActive = idx === activeIdx;
               const previewH = aspectRatio === '9:16' ? '1920px' : aspectRatio === '4:5' ? '1350px' : '1080px';
 
-              // Infinite carousel: check if THIS slide is the left half, or if PREV slide shares its image
-              const prevSlide = idx > 0 ? slides[idx - 1] : null;
-              const isInfiniteLeft = slide.infiniteCarousel && slide.backgroundUrl;
-              const isInfiniteRight = prevSlide?.infiniteCarousel && prevSlide?.backgroundUrl;
-              const infiniteBgUrl = isInfiniteRight ? prevSlide.backgroundUrl : slide.backgroundUrl;
-              const infiniteZoom = isInfiniteRight ? (prevSlide.backgroundZoom ?? 100) : (slide.backgroundZoom ?? 100);
-              const infiniteY = isInfiniteRight ? (prevSlide.backgroundY ?? 50) : (slide.backgroundY ?? 50);
-              const infiniteOpacity = isInfiniteRight ? (prevSlide.backgroundOpacity ?? 100) : (slide.backgroundOpacity ?? 100);
-              const infiniteFlip = isInfiniteRight ? (prevSlide.backgroundFlipH || false) : (slide.backgroundFlipH || false);
-
-              // Determine background image to show
-              const bgUrl = (isInfiniteLeft || isInfiniteRight) ? infiniteBgUrl : slide.backgroundUrl;
+              // Resolve background (handles infinite carousel)
+              const bg = resolveBackground(slide, idx, slides);
 
               return (
                 <div key={slide.id} onClick={() => setActiveIdx(idx)}
@@ -449,25 +441,14 @@ export default function VisualEditorPage() {
                     style={{ backgroundColor: slide.slideBgColor || '#000000' }}
                   >
                     {/* Background image layer */}
-                    {bgUrl && (
+                    {bg.url && (
                       <div className="absolute inset-0" style={{
-                        backgroundImage: `url('${bgUrl}')`,
+                        backgroundImage: `url('${bg.url}')`,
                         backgroundRepeat: 'no-repeat',
-                        ...(isInfiniteLeft ? {
-                          // Left half: show left 50% of image stretched to 200% width
-                          backgroundPosition: `0% ${infiniteY}%`,
-                          backgroundSize: `200% ${infiniteZoom}%`,
-                        } : isInfiniteRight ? {
-                          // Right half: show right 50% of image
-                          backgroundPosition: `100% ${infiniteY}%`,
-                          backgroundSize: `200% ${infiniteZoom}%`,
-                        } : {
-                          // Normal
-                          backgroundPosition: `${slide.backgroundX ?? 50}% ${slide.backgroundY ?? 50}%`,
-                          backgroundSize: `${slide.backgroundZoom ?? 100}%`,
-                        }),
-                        opacity: ((isInfiniteLeft || isInfiniteRight) ? infiniteOpacity : (slide.backgroundOpacity ?? 100)) / 100,
-                        transform: ((isInfiniteLeft || isInfiniteRight) ? infiniteFlip : slide.backgroundFlipH) ? 'scaleX(-1)' : undefined,
+                        backgroundPosition: `${bg.posX} ${bg.posY}`,
+                        backgroundSize: bg.size,
+                        opacity: bg.opacity,
+                        transform: bg.flip ? 'scaleX(-1)' : undefined,
                       }} />
                     )}
                     {/* Overlay */}
