@@ -26,6 +26,7 @@ export default function VisualEditorPage() {
   const [brands, setBrands] = useState<any[]>([]);
   const [brandId, setBrandId] = useState('');
   const [brandLogoUrl, setBrandLogoUrl] = useState('');
+  const [brandName, setBrandName] = useState('');
   const [caption, setCaption] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
@@ -50,7 +51,7 @@ export default function VisualEditorPage() {
         const items = r.items || [];
         setBrands(items);
         const def = items.find((b: any) => b.isDefault);
-        if (def) { setBrandId(def.id); setBrandLogoUrl(def.logoUrl || ''); }
+        if (def) { setBrandId(def.id); setBrandLogoUrl(def.logoUrl || ''); setBrandName(def.name || ''); }
       })
       .catch(() => {});
   }, []);
@@ -58,6 +59,7 @@ export default function VisualEditorPage() {
   useEffect(() => {
     const brand = brands.find((b) => b.id === brandId);
     setBrandLogoUrl(brand?.logoUrl || '');
+    setBrandName(brand?.name || '');
   }, [brandId, brands]);
 
   // ── Load post ──
@@ -201,7 +203,7 @@ export default function VisualEditorPage() {
   }
 
   async function renderSlide(slide: SlideState, idx: number, allSlides: SlideState[]): Promise<string> {
-    const contentHtml = buildSlideHtml(slide, { aspectRatio, brandLogoUrl, globalStyle });
+    const contentHtml = buildSlideHtml(slide, { aspectRatio, brandLogoUrl, brandName, globalStyle });
     const bg = resolveBackground(slide, idx, allSlides);
 
     // Build background as part of the HTML so we control position/zoom/flip/opacity
@@ -487,7 +489,7 @@ export default function VisualEditorPage() {
                         }}
                         dangerouslySetInnerHTML={{ __html: buildSlideHtml(
                           { ...slide, slideNumber: idx + 1, totalSlides: slides.length },
-                          { aspectRatio, brandLogoUrl, globalStyle }
+                          { aspectRatio, brandLogoUrl, brandName, globalStyle }
                         ) }}
                       />
                     </div>

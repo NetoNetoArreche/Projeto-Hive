@@ -70,9 +70,9 @@ function buildWordHtml(text: string, highlights: Record<number, WordFormat>, def
 
 export function buildSlideHtml(
   s: SlideState,
-  opts: { aspectRatio: string; brandLogoUrl: string; globalStyle: GlobalStyle }
+  opts: { aspectRatio: string; brandLogoUrl: string; brandName?: string; globalStyle: GlobalStyle }
 ): string {
-  const { aspectRatio, brandLogoUrl, globalStyle: gs } = opts;
+  const { aspectRatio, brandLogoUrl, brandName, globalStyle: gs } = opts;
   const font = `'${s.fontFamily}', sans-serif`;
   const subFont = `'${s.subtitleFontFamily}', sans-serif`;
   const color = s.titleColor;
@@ -208,11 +208,24 @@ export function buildSlideHtml(
     content += `<div style="margin-top:32px;display:inline-block;padding:14px 36px;background:${color};color:#000;border-radius:999px;font-size:18px;font-weight:700;font-family:${font};">${escHtml(s.ctaText)}</div>`;
   }
 
+  // ── Profile badge ──
+  let badgeHtml = '';
+  if (s.showProfileBadge && (brandLogoUrl || brandName)) {
+    const logoImg = brandLogoUrl
+      ? `<img src="${brandLogoUrl}" alt="logo" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" crossorigin="anonymous"/>`
+      : '';
+    const nameSpan = brandName
+      ? `<span style="font-size:18px;font-weight:700;color:#1a1a2e;font-family:'Inter',sans-serif;">${escHtml(brandName)}</span>`
+      : '';
+    badgeHtml = `<div style="position:absolute;bottom:${sz.indicatorBottom + 40}px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.95);padding:12px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,0.3);z-index:10;">${logoImg}${nameSpan}</div>`;
+  }
+
   return `
     ${patternHtml}
     ${corners.join('\n')}
     ${cornerIconHtml}
     ${logoHtml}
+    ${badgeHtml}
     ${indicatorsHtml}
     <div style="position:absolute;${pos};display:flex;flex-direction:column;gap:20px;font-family:${font};transform:scale(${scaleVal});transform-origin:center;">
       ${glassOpen}

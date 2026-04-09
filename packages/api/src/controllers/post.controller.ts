@@ -178,7 +178,7 @@ export async function updatePost(req: AuthRequest, res: Response) {
           imageUrl: img.imageUrl,
           minioKey: img.minioKey || null,
           order: img.order ?? idx,
-          source: img.source || 'WEB',
+          source: img.source || 'UPLOAD',
           prompt: img.prompt || null,
         })),
       });
