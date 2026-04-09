@@ -72,7 +72,12 @@ export default function VisualEditorPage() {
         setCurrentPostId(post.id);
         setCaption(post.caption || '');
         setHashtags((post.hashtags || []).join(', '));
-        if (post.scheduledAt) setScheduledAt(new Date(post.scheduledAt).toISOString().slice(0, 16));
+        if (post.scheduledAt) {
+          // Convert UTC to local datetime-local format (YYYY-MM-DDTHH:MM)
+          const d = new Date(post.scheduledAt);
+          const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+          setScheduledAt(local.toISOString().slice(0, 16));
+        }
         if (post.aspectRatio) setAspectRatio(post.aspectRatio as AspectRatio);
         if (post.editorState?.slides?.length) {
           setSlides(post.editorState.slides);
@@ -305,11 +310,12 @@ export default function VisualEditorPage() {
         if (isCarousel && validImages.length >= 2) {
           updatePayload.images = validImages.map((u, i) => ({ imageUrl: u, order: i }));
         }
-        if (action === 'schedule' && scheduledAt) {
+        if (scheduledAt) {
           updatePayload.scheduledAt = new Date(scheduledAt).toISOString();
+          updatePayload.status = 'SCHEDULED';
         }
         await api.updatePost(currentPostId, updatePayload);
-        setMessage(action === 'schedule' ? 'Post agendado!' : 'Post salvo!');
+        setMessage(scheduledAt ? 'Post agendado!' : 'Post salvo!');
       } else {
         const payload: Record<string, unknown> = {
           caption,
@@ -326,10 +332,10 @@ export default function VisualEditorPage() {
         const post = (await api.createPost(payload)) as any;
         setCurrentPostId(post.id);
         window.history.replaceState(null, '', `/posts/visual-editor?postId=${post.id}`);
-        if (action === 'schedule' && scheduledAt) {
+        if (scheduledAt) {
           await api.schedulePost(post.id, new Date(scheduledAt).toISOString());
         }
-        setMessage(action === 'schedule' ? 'Post agendado!' : 'Rascunho salvo!');
+        setMessage(scheduledAt ? 'Post agendado!' : 'Rascunho salvo!');
       }
       setMessageType('success');
     } catch (e: any) { setMessage(e.message); setMessageType('error'); }
