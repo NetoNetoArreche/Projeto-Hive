@@ -143,12 +143,12 @@ export interface TemplateConfig {
 // ── Constants ──
 
 export const TEMPLATES: TemplateConfig[] = [
-  { id: 'hero', name: 'Capa / Hook', desc: 'Titulo grande de impacto', icon: '🎯', fields: ['title', 'subtitle'], defaultPosition: 'bottom-left' },
-  { id: 'content', name: 'Conteudo', desc: 'Rotulo + titulo + subtitulo', icon: '📝', fields: ['label', 'title', 'subtitle'], defaultPosition: 'middle-center' },
-  { id: 'stat', name: 'Dado / Stat', desc: 'Numero em destaque + contexto', icon: '📊', fields: ['stat', 'title', 'subtitle'], defaultPosition: 'middle-center' },
-  { id: 'quote', name: 'Citacao', desc: 'Frase em italico + autor', icon: '💬', fields: ['title', 'subtitle'], defaultPosition: 'middle-center' },
-  { id: 'cta', name: 'CTA Final', desc: 'Chamada pra acao + handle', icon: '🚀', fields: ['title', 'subtitle', 'label'], defaultPosition: 'middle-center' },
-  { id: 'list', name: 'Lista / Steps', desc: 'Rotulo + titulo + subtitulo longo', icon: '📋', fields: ['label', 'title', 'subtitle'], defaultPosition: 'middle-left' },
+  { id: 'hero', name: 'Capa / Hook', desc: 'Titulo grande de impacto', icon: 'crosshair', fields: ['title', 'subtitle'], defaultPosition: 'bottom-left' },
+  { id: 'content', name: 'Conteudo', desc: 'Rotulo + titulo + subtitulo', icon: 'file-text', fields: ['label', 'title', 'subtitle'], defaultPosition: 'middle-center' },
+  { id: 'stat', name: 'Dado / Stat', desc: 'Numero em destaque + contexto', icon: 'bar-chart-3', fields: ['stat', 'title', 'subtitle'], defaultPosition: 'middle-center' },
+  { id: 'quote', name: 'Citacao', desc: 'Frase em italico + autor', icon: 'message-circle', fields: ['title', 'subtitle'], defaultPosition: 'middle-center' },
+  { id: 'cta', name: 'CTA Final', desc: 'Chamada pra acao + handle', icon: 'rocket', fields: ['title', 'subtitle', 'label'], defaultPosition: 'middle-center' },
+  { id: 'list', name: 'Lista / Steps', desc: 'Rotulo + titulo + subtitulo longo', icon: 'list', fields: ['label', 'title', 'subtitle'], defaultPosition: 'middle-left' },
 ];
 
 export const FONTS = [

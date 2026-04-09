@@ -106,6 +106,10 @@ export default function VisualEditorPage() {
     setSlides((prev) => prev.map((s, i) => (i === activeIdx ? { ...s, ...patch, renderedUrl: undefined } : s)));
   }
 
+  function updateAllSlides(patch: Partial<SlideState>) {
+    setSlides((prev) => prev.map((s) => ({ ...s, ...patch, renderedUrl: undefined })));
+  }
+
   function addSlide(tpl: TemplateId = 'content') {
     const next = [...slides, emptySlide(slides.length, tpl)];
     setSlides(next);
@@ -357,6 +361,7 @@ export default function VisualEditorPage() {
         activeIdx={activeIdx}
         active={active}
         updateActive={updateActive}
+        updateAllSlides={updateAllSlides}
         globalStyle={globalStyle}
         setGlobalStyle={setGlobalStyle}
         brands={brands}

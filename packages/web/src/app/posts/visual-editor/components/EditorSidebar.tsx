@@ -44,6 +44,12 @@ import {
   Italic,
   Underline,
   Strikethrough,
+  Crosshair,
+  FileText,
+  BarChart3,
+  MessageCircle,
+  Rocket,
+  List,
 } from 'lucide-react';
 
 interface EditorSidebarProps {
@@ -51,6 +57,7 @@ interface EditorSidebarProps {
   activeIdx: number;
   active: SlideState;
   updateActive: (patch: Partial<SlideState>) => void;
+  updateAllSlides: (patch: Partial<SlideState>) => void;
   globalStyle: GlobalStyle;
   setGlobalStyle: (gs: GlobalStyle) => void;
   brands: any[];
@@ -89,6 +96,7 @@ export function EditorSidebar({
   activeIdx,
   active,
   updateActive,
+  updateAllSlides,
   globalStyle,
   setGlobalStyle,
   brands,
@@ -220,7 +228,9 @@ export function EditorSidebar({
                     active.template === tpl.id ? btnActive : btnInactive
                   }`}
                 >
-                  <span className="block text-sm mb-0.5">{tpl.icon}</span>
+                  <span className="block mb-0.5">{
+                    { crosshair: <Crosshair className="w-4 h-4 mx-auto" />, 'file-text': <FileText className="w-4 h-4 mx-auto" />, 'bar-chart-3': <BarChart3 className="w-4 h-4 mx-auto" />, 'message-circle': <MessageCircle className="w-4 h-4 mx-auto" />, rocket: <Rocket className="w-4 h-4 mx-auto" />, list: <List className="w-4 h-4 mx-auto" /> }[tpl.icon] || tpl.icon
+                  }</span>
                   {tpl.name}
                 </button>
               ))}
@@ -1164,12 +1174,12 @@ export function EditorSidebar({
           <div>
             <span className={labelClass}>CANTOS</span>
 
-            {/* 2x2 corner inputs */}
+            {/* 2x2 corner inputs — applies to ALL slides */}
             <div className="grid grid-cols-2 gap-2 mt-1.5">
               {/* Top-left */}
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => updateActive({ cornerTopLeftEnabled: !active.cornerTopLeftEnabled })}
+                  onClick={() => updateAllSlides({ cornerTopLeftEnabled: !active.cornerTopLeftEnabled })}
                   className={`text-[9px] py-0.5 px-1.5 rounded border transition-all ${
                     active.cornerTopLeftEnabled ? 'bg-primary text-white border-primary' : 'bg-bg-card border-border text-text-muted'
                   }`}
@@ -1179,7 +1189,7 @@ export function EditorSidebar({
                 <input
                   className="input-field text-xs flex-1 min-w-0"
                   value={active.cornerTopLeft}
-                  onChange={(e) => updateActive({ cornerTopLeft: e.target.value })}
+                  onChange={(e) => updateAllSlides({ cornerTopLeft: e.target.value })}
                   placeholder="Sup.Esq"
                 />
               </div>
@@ -1187,7 +1197,7 @@ export function EditorSidebar({
               {/* Top-right */}
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => updateActive({ cornerTopRightEnabled: !active.cornerTopRightEnabled })}
+                  onClick={() => updateAllSlides({ cornerTopRightEnabled: !active.cornerTopRightEnabled })}
                   className={`text-[9px] py-0.5 px-1.5 rounded border transition-all ${
                     active.cornerTopRightEnabled ? 'bg-primary text-white border-primary' : 'bg-bg-card border-border text-text-muted'
                   }`}
@@ -1197,7 +1207,7 @@ export function EditorSidebar({
                 <input
                   className="input-field text-xs flex-1 min-w-0"
                   value={active.cornerTopRight}
-                  onChange={(e) => updateActive({ cornerTopRight: e.target.value })}
+                  onChange={(e) => updateAllSlides({ cornerTopRight: e.target.value })}
                   placeholder="Sup.Dir"
                 />
               </div>
@@ -1205,7 +1215,7 @@ export function EditorSidebar({
               {/* Bottom-left */}
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => updateActive({ cornerBottomLeftEnabled: !active.cornerBottomLeftEnabled })}
+                  onClick={() => updateAllSlides({ cornerBottomLeftEnabled: !active.cornerBottomLeftEnabled })}
                   className={`text-[9px] py-0.5 px-1.5 rounded border transition-all ${
                     active.cornerBottomLeftEnabled ? 'bg-primary text-white border-primary' : 'bg-bg-card border-border text-text-muted'
                   }`}
@@ -1215,7 +1225,7 @@ export function EditorSidebar({
                 <input
                   className="input-field text-xs flex-1 min-w-0"
                   value={active.cornerBottomLeft}
-                  onChange={(e) => updateActive({ cornerBottomLeft: e.target.value })}
+                  onChange={(e) => updateAllSlides({ cornerBottomLeft: e.target.value })}
                   placeholder="Inf.Esq"
                 />
               </div>
@@ -1223,7 +1233,7 @@ export function EditorSidebar({
               {/* Bottom-right */}
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => updateActive({ cornerBottomRightEnabled: !active.cornerBottomRightEnabled })}
+                  onClick={() => updateAllSlides({ cornerBottomRightEnabled: !active.cornerBottomRightEnabled })}
                   className={`text-[9px] py-0.5 px-1.5 rounded border transition-all ${
                     active.cornerBottomRightEnabled ? 'bg-primary text-white border-primary' : 'bg-bg-card border-border text-text-muted'
                   }`}
@@ -1233,7 +1243,7 @@ export function EditorSidebar({
                 <input
                   className="input-field text-xs flex-1 min-w-0"
                   value={active.cornerBottomRight}
-                  onChange={(e) => updateActive({ cornerBottomRight: e.target.value })}
+                  onChange={(e) => updateAllSlides({ cornerBottomRight: e.target.value })}
                   placeholder="Inf.Dir"
                 />
               </div>
@@ -1343,7 +1353,9 @@ export function EditorSidebar({
                     globalStyle.bottomRightIcon === ci.id ? btnActive : btnInactive
                   }`}
                 >
-                  {ci.label}
+                  {ci.svg ? (
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: ci.svg }} />
+                  ) : '—'}
                 </button>
               ))}
             </div>
