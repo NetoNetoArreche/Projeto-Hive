@@ -477,7 +477,7 @@ export function EditorSidebar({
             </button>
             {active.infiniteCarousel && (
               <p className="text-[10px] text-text-muted leading-relaxed">
-                Esta imagem se divide com o slide {activeIdx + 2 <= slides.length ? activeIdx + 2 : 1}. Use Posicao ↕ e Zoom % para ajustar.
+                Metade esquerda neste slide, metade direita no slide {activeIdx + 2}. Use Zoom % para ajustar o tamanho.
               </p>
             )}
           </div>

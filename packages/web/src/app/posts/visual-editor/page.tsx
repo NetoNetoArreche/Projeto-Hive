@@ -371,6 +371,19 @@ export default function VisualEditorPage() {
               const isActive = idx === activeIdx;
               const previewH = aspectRatio === '9:16' ? '1920px' : aspectRatio === '4:5' ? '1350px' : '1080px';
 
+              // Infinite carousel: check if THIS slide is the left half, or if PREV slide shares its image
+              const prevSlide = idx > 0 ? slides[idx - 1] : null;
+              const isInfiniteLeft = slide.infiniteCarousel && slide.backgroundUrl;
+              const isInfiniteRight = prevSlide?.infiniteCarousel && prevSlide?.backgroundUrl;
+              const infiniteBgUrl = isInfiniteRight ? prevSlide.backgroundUrl : slide.backgroundUrl;
+              const infiniteZoom = isInfiniteRight ? (prevSlide.backgroundZoom ?? 100) : (slide.backgroundZoom ?? 100);
+              const infiniteY = isInfiniteRight ? (prevSlide.backgroundY ?? 50) : (slide.backgroundY ?? 50);
+              const infiniteOpacity = isInfiniteRight ? (prevSlide.backgroundOpacity ?? 100) : (slide.backgroundOpacity ?? 100);
+              const infiniteFlip = isInfiniteRight ? (prevSlide.backgroundFlipH || false) : (slide.backgroundFlipH || false);
+
+              // Determine background image to show
+              const bgUrl = (isInfiniteLeft || isInfiniteRight) ? infiniteBgUrl : slide.backgroundUrl;
+
               return (
                 <div key={slide.id} onClick={() => setActiveIdx(idx)}
                   className={`flex-shrink-0 h-full cursor-pointer transition-all duration-200 ${isActive ? '' : 'opacity-60 hover:opacity-85'}`}
@@ -382,18 +395,26 @@ export default function VisualEditorPage() {
                   }`}
                     style={{ backgroundColor: slide.slideBgColor || '#000000' }}
                   >
-                    {/* Background image layer (supports opacity, flip, infinite carousel) */}
-                    {slide.backgroundUrl && (
+                    {/* Background image layer */}
+                    {bgUrl && (
                       <div className="absolute inset-0" style={{
-                        backgroundImage: `url('${slide.backgroundUrl}')`,
-                        backgroundPosition: slide.infiniteCarousel
-                          ? `${(idx / Math.max(slides.length - 1, 1)) * 100}% ${slide.backgroundY ?? 50}%`
-                          : `${slide.backgroundX ?? 50}% ${slide.backgroundY ?? 50}%`,
-                        backgroundSize: slide.infiniteCarousel
-                          ? `${slides.length * 100}% ${slide.backgroundZoom ?? 100}%`
-                          : `${slide.backgroundZoom ?? 100}%`,
-                        opacity: (slide.backgroundOpacity ?? 100) / 100,
-                        transform: slide.backgroundFlipH ? 'scaleX(-1)' : undefined,
+                        backgroundImage: `url('${bgUrl}')`,
+                        backgroundRepeat: 'no-repeat',
+                        ...(isInfiniteLeft ? {
+                          // Left half: show left 50% of image stretched to 200% width
+                          backgroundPosition: `0% ${infiniteY}%`,
+                          backgroundSize: `200% ${infiniteZoom}%`,
+                        } : isInfiniteRight ? {
+                          // Right half: show right 50% of image
+                          backgroundPosition: `100% ${infiniteY}%`,
+                          backgroundSize: `200% ${infiniteZoom}%`,
+                        } : {
+                          // Normal
+                          backgroundPosition: `${slide.backgroundX ?? 50}% ${slide.backgroundY ?? 50}%`,
+                          backgroundSize: `${slide.backgroundZoom ?? 100}%`,
+                        }),
+                        opacity: ((isInfiniteLeft || isInfiniteRight) ? infiniteOpacity : (slide.backgroundOpacity ?? 100)) / 100,
+                        transform: ((isInfiniteLeft || isInfiniteRight) ? infiniteFlip : slide.backgroundFlipH) ? 'scaleX(-1)' : undefined,
                       }} />
                     )}
                     {/* Overlay */}
