@@ -53,7 +53,7 @@ async function apiRequest(path, options = {}) {
   return data.data;
 }
 
-const server = new McpServer({ name: 'openhive', version: '1.7.1' });
+const server = new McpServer({ name: 'openhive', version: '1.8.0' });
 
 // ── Posts ──
 
@@ -692,12 +692,50 @@ server.tool(
       hashtags = merged;
     }
 
-    // Step 4: Create post
+    // Step 4: Build editorState for visual editor
+    const tplMap = { 'bold-gradient': 'content', 'minimal-dark': 'content', 'neon-card': 'content', 'quote-elegant': 'quote', 'stats-impact': 'stat', 'split-color': 'content' };
+    const mkSlide = (id, tpl, bgUrl, bgPrompt, title, subtitle, label, num, isCta) => ({
+      id, template: tpl,
+      backgroundUrl: bgUrl, backgroundPrompt: bgPrompt || '',
+      backgroundX: 50, backgroundY: 50, backgroundZoom: 100,
+      backgroundOpacity: 100, backgroundFlipH: false, infiniteCarousel: false,
+      overlayOpacity: tpl === 'hero' ? 0.4 : 0, overlayStyle: 'base',
+      slideBgColor: '#000000', slideBgPattern: 'none', slideBgPatternSize: 40, slideBgPatternOpacity: 15,
+      label: label || '', title: title || '', subtitle: subtitle || '', stat: '',
+      position: tpl === 'hero' ? 'bottom-left' : 'middle-center', textAlign: 'center',
+      fontFamily: 'Inter', fontWeight: 800,
+      titleColor: (brand && brand.primaryColor) || '#ffffff', titleFontSize: 72, titleLetterSpacing: -0.02,
+      subtitleFontFamily: 'Inter', subtitleFontWeight: 400,
+      subtitleColor: '#ffffff', subtitleFontSize: 28, subtitleLetterSpacing: 0, subtitleLineHeight: 1.4,
+      globalScale: 100, glassEffect: false,
+      cornerTopLeft: '', cornerTopRight: '', cornerBottomLeft: '', cornerBottomRight: '',
+      cornerTopLeftEnabled: true, cornerTopRightEnabled: true, cornerBottomLeftEnabled: true, cornerBottomRightEnabled: true,
+      logoPosition: '', customLogoUrl: '', showLogo: true, showProfileBadge: false,
+      showIndicators: true, totalSlides: images.length, slideNumber: num,
+      showCTA: !!isCta, ctaText: '', wordHighlights: {}, refinePrompt: '',
+    });
+
+    const editorSlides = [
+      mkSlide('cover', 'hero', images[0].imageUrl, coverPrompt, input.slides[0]?.title || '', input.slides[0]?.subtitle || '', '', 1, false),
+      ...input.slides.map((s, i) => mkSlide(
+        `slide${i+2}`, tplMap[s.template || 'bold-gradient'] || 'content',
+        images[i+1]?.imageUrl || '', '', s.title, s.subtitle || '',
+        i === input.slides.length - 1 ? '' : `Passo ${i+1}`, i+2,
+        i === input.slides.length - 1
+      )),
+    ];
+
+    const editorState = {
+      slides: editorSlides, brandId: input.brand_id || '', aspectRatio,
+      globalStyle: { showCorners: true, showIndicators: true, cornerFontSize: 20, cornerEdgeDistance: 80, cornerOpacity: 85, cornerGlass: false, cornerBorder: false, bottomRightIcon: 'none' },
+    };
+
+    // Step 5: Create post with editorState
     const post = await apiRequest('/api/posts', {
       method: 'POST',
       body: JSON.stringify({
         caption, hashtags, source: 'MCP', aspectRatio,
-        isCarousel: true, images,
+        isCarousel: true, images, editorState,
         ...(input.scheduled_at ? { scheduledAt: input.scheduled_at } : {}),
       }),
     });
@@ -715,6 +753,7 @@ server.tool(
           brand_applied: brand ? { id: brand.id, name: brand.name } : null,
           status: post.status,
           scheduled_at: post.scheduledAt || null,
+          editor_state: 'included',
         }, null, 2),
       }],
     };

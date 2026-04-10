@@ -1,6 +1,6 @@
 {
   "name": "openhive-mcp-server",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "description": "OpenHive AI MCP Server - Connect Claude, Antigravity, Cursor and other IDEs to your OpenHive instance. 40 tools including Design Systems library (58 brand inspirations), Brands (6 colors + 3 fonts), Mixed Carousel, Composed Image (AI background + HTML/Tailwind overlay).",
   "main": "index.js",
   "bin": {

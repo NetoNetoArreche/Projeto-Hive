@@ -104,7 +104,87 @@ export async function createMixedCarousel(input: CreateMixedCarouselInput) {
     hashtags = merged;
   }
 
-  // Step 4: Create post
+  // Step 4: Build editorState so visual editor can edit text
+  const templateToEditor: Record<string, string> = {
+    'bold-gradient': 'content',
+    'minimal-dark': 'content',
+    'neon-card': 'content',
+    'quote-elegant': 'quote',
+    'stats-impact': 'stat',
+    'split-color': 'content',
+  };
+
+  const editorSlides = [
+    // Cover slide (AI image)
+    {
+      id: 'cover',
+      template: 'hero',
+      backgroundUrl: images[0].imageUrl,
+      backgroundPrompt: coverPrompt,
+      backgroundX: 50, backgroundY: 50, backgroundZoom: 100,
+      backgroundOpacity: 100, backgroundFlipH: false, infiniteCarousel: false,
+      overlayOpacity: 0.4, overlayStyle: 'base',
+      slideBgColor: '#000000', slideBgPattern: 'none',
+      slideBgPatternSize: 40, slideBgPatternOpacity: 15,
+      label: '', title: input.slides[0]?.title || '', subtitle: input.slides[0]?.subtitle || '', stat: '',
+      position: 'bottom-left', textAlign: 'center',
+      fontFamily: 'Inter', fontWeight: 800,
+      titleColor: '#ffffff', titleFontSize: 72, titleLetterSpacing: -0.02,
+      subtitleFontFamily: 'Inter', subtitleFontWeight: 400,
+      subtitleColor: '#ffffff', subtitleFontSize: 28,
+      subtitleLetterSpacing: 0, subtitleLineHeight: 1.4,
+      globalScale: 100, glassEffect: false,
+      cornerTopLeft: '', cornerTopRight: '', cornerBottomLeft: '', cornerBottomRight: '',
+      cornerTopLeftEnabled: true, cornerTopRightEnabled: true,
+      cornerBottomLeftEnabled: true, cornerBottomRightEnabled: true,
+      logoPosition: '', customLogoUrl: '', showLogo: true, showProfileBadge: false,
+      showIndicators: true, totalSlides: images.length, slideNumber: 1,
+      showCTA: false, ctaText: '', wordHighlights: {}, refinePrompt: '',
+    },
+    // Template slides (editable text)
+    ...input.slides.map((slide, i) => ({
+      id: `slide${i + 2}`,
+      template: templateToEditor[slide.template || 'bold-gradient'] || 'content',
+      backgroundUrl: images[i + 1]?.imageUrl || '',
+      backgroundPrompt: '',
+      backgroundX: 50, backgroundY: 50, backgroundZoom: 100,
+      backgroundOpacity: 100, backgroundFlipH: false, infiniteCarousel: false,
+      overlayOpacity: 0, overlayStyle: 'base',
+      slideBgColor: '#000000', slideBgPattern: 'none',
+      slideBgPatternSize: 40, slideBgPatternOpacity: 15,
+      label: i === input.slides.length - 1 ? '' : `Passo ${i + 1}`,
+      title: slide.title,
+      subtitle: slide.subtitle || '',
+      stat: '',
+      position: 'middle-center', textAlign: 'center',
+      fontFamily: 'Inter', fontWeight: 800,
+      titleColor: brand?.primaryColor || '#ffffff', titleFontSize: 72, titleLetterSpacing: -0.02,
+      subtitleFontFamily: 'Inter', subtitleFontWeight: 400,
+      subtitleColor: '#ffffff', subtitleFontSize: 28,
+      subtitleLetterSpacing: 0, subtitleLineHeight: 1.4,
+      globalScale: 100, glassEffect: false,
+      cornerTopLeft: '', cornerTopRight: '', cornerBottomLeft: '', cornerBottomRight: '',
+      cornerTopLeftEnabled: true, cornerTopRightEnabled: true,
+      cornerBottomLeftEnabled: true, cornerBottomRightEnabled: true,
+      logoPosition: '', customLogoUrl: '', showLogo: true, showProfileBadge: false,
+      showIndicators: true, totalSlides: images.length, slideNumber: i + 2,
+      showCTA: i === input.slides.length - 1, ctaText: '',
+      wordHighlights: {}, refinePrompt: '',
+    })),
+  ];
+
+  const editorState = {
+    slides: editorSlides,
+    brandId: input.brand_id || '',
+    aspectRatio,
+    globalStyle: {
+      showCorners: true, showIndicators: true,
+      cornerFontSize: 20, cornerEdgeDistance: 80, cornerOpacity: 85,
+      cornerGlass: false, cornerBorder: false, bottomRightIcon: 'none',
+    },
+  };
+
+  // Step 5: Create post with editorState
   const post = (await api.createPost({
     caption,
     hashtags,
@@ -112,6 +192,7 @@ export async function createMixedCarousel(input: CreateMixedCarouselInput) {
     aspectRatio,
     isCarousel: true,
     images,
+    editorState,
     ...(input.scheduled_at ? { scheduledAt: input.scheduled_at } : {}),
   })) as any;
 
@@ -125,5 +206,6 @@ export async function createMixedCarousel(input: CreateMixedCarouselInput) {
     brand_applied: brand ? { id: brand.id, name: brand.name } : null,
     status: post.status,
     scheduled_at: post.scheduledAt || null,
+    editor_state: 'included',
   };
 }
