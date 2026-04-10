@@ -170,20 +170,22 @@ async function publishContainer(containerId: string, token: string, igUserId: st
 async function createChildContainer(publicUrl: string, token: string, igUserId: string): Promise<string> {
   const base = getGraphBase(token);
   const userPath = resolveUserIdForToken(token, igUserId);
-  const params: Record<string, string> = {
+
+  // Use query params in URL (official Meta docs approach) to avoid URLSearchParams encoding issues
+  const qs = new URLSearchParams({
     image_url: publicUrl,
     is_carousel_item: 'true',
+    media_type: 'IMAGE',
     access_token: token,
-  };
-  // Instagram Login API (IGAA) requires explicit media_type for carousel items
-  if (!token.startsWith('EAA')) {
-    params.media_type = 'IMAGE';
-  }
-  const res = await fetch(`${base}/${userPath}/media`, {
-    method: 'POST',
-    body: new URLSearchParams(params),
   });
+  const url = `${base}/${userPath}/media?${qs.toString()}`;
+
+  console.log(`[Instagram] Child container request URL (without token): ${url.replace(token, 'TOKEN_HIDDEN')}`);
+
+  const res = await fetch(url, { method: 'POST' });
   const data = (await res.json()) as any;
+
+  console.log(`[Instagram] Child container response:`, JSON.stringify(data));
 
   if (!data.id) {
     throw new Error(`Failed to create child container: ${JSON.stringify(data)}`);
