@@ -100,8 +100,8 @@ function buildWordHtml(text: string, highlights: Record<number, WordFormat>, def
     if (h?.underline) decoration.push('underline');
     if (h?.strikethrough) decoration.push('line-through');
     const dec = decoration.length ? `text-decoration:${decoration.join(' ')};` : '';
-    return `<span style="font-size:${fontSize}px;font-weight:${weight};color:${color};letter-spacing:${letterSpacing}em;font-family:${font};${style}${dec}${shadow}">${escHtml(word)}</span>`;
-  }).join(' ');
+    return `<span style="font-size:${fontSize}px;font-weight:${weight};color:${color};letter-spacing:${letterSpacing}em;font-family:${font};display:inline;${style}${dec}${shadow}">${escHtml(word)} </span>`;
+  }).join('');
 }
 
 export function buildSlideHtml(
