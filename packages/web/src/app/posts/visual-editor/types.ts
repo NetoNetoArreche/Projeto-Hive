@@ -91,6 +91,7 @@ export interface SlideState {
   logoPosition: '' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   customLogoUrl: string;
   showLogo: boolean;
+  logoSize: number;
   showProfileBadge: boolean;
 
   // Indicators
@@ -327,6 +328,7 @@ export function emptySlide(idx: number, tpl: TemplateId = idx === 0 ? 'hero' : '
     logoPosition: '',
     customLogoUrl: '',
     showLogo: true,
+    logoSize: 44,
     showProfileBadge: false,
     showIndicators: true,
     totalSlides: 5,

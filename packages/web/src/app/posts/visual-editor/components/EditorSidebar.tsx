@@ -1404,6 +1404,22 @@ export function EditorSidebar({
                 ))}
               </div>
             </div>
+
+            {/* Logo size */}
+            {active.logoPosition && (
+              <div className="mt-2">
+                <div className="flex items-center justify-between">
+                  <span className={labelClass}>TAMANHO DO LOGO</span>
+                  <span className="text-[10px] text-primary font-semibold">{active.logoSize || 44}px</span>
+                </div>
+                <input
+                  type="range" min={20} max={120}
+                  value={active.logoSize || 44}
+                  onChange={(e) => updateAllSlides({ logoSize: Number(e.target.value) })}
+                  className="w-full mt-1 accent-primary"
+                />
+              </div>
+            )}
           </div>
         </CollapsibleSection>
 

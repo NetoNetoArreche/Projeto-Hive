@@ -187,7 +187,7 @@ export function buildSlideHtml(
   let logoHtml = '';
   const logoUrl = s.customLogoUrl || brandLogoUrl;
   if (s.logoPosition && logoUrl && s.showLogo) {
-    const logoSize = 44;
+    const logoSize = s.logoSize || 44;
     const posStyle: Record<string, string> = {
       'top-left': `top:${ci}px;left:${edgeDist}px;`,
       'top-right': `top:${ci}px;right:${edgeDist}px;`,
