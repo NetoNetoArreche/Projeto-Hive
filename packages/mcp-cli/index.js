@@ -694,12 +694,13 @@ server.tool(
 
     // Step 4: Build editorState for visual editor
     const tplMap = { 'bold-gradient': 'content', 'minimal-dark': 'content', 'neon-card': 'content', 'quote-elegant': 'quote', 'stats-impact': 'stat', 'split-color': 'content' };
-    const mkSlide = (id, tpl, bgUrl, bgPrompt, title, subtitle, label, num, isCta) => ({
+    // bgUrl = background image, renderedUrl = pre-rendered template image (for preview/export)
+    const mkSlide = (id, tpl, bgUrl, bgPrompt, title, subtitle, label, num, isCta, renderedUrl) => ({
       id, template: tpl,
-      backgroundUrl: bgUrl, backgroundPrompt: bgPrompt || '',
+      backgroundUrl: bgUrl, renderedUrl: renderedUrl || '', backgroundPrompt: bgPrompt || '',
       backgroundX: 50, backgroundY: 50, backgroundZoom: 100,
       backgroundOpacity: 100, backgroundFlipH: false, infiniteCarousel: false,
-      overlayOpacity: tpl === 'hero' ? 0.4 : 0, overlayStyle: 'base',
+      overlayOpacity: tpl === 'hero' ? 0.4 : 0.5, overlayStyle: tpl === 'hero' ? 'base' : 'gradient',
       slideBgColor: '#000000', slideBgPattern: 'none', slideBgPatternSize: 40, slideBgPatternOpacity: 15,
       label: label || '', title: title || '', subtitle: subtitle || '', stat: '',
       position: tpl === 'hero' ? 'bottom-left' : 'middle-center', textAlign: 'center',
@@ -707,7 +708,7 @@ server.tool(
       titleColor: (brand && brand.primaryColor) || '#ffffff', titleFontSize: 72, titleLetterSpacing: -0.02,
       subtitleFontFamily: 'Inter', subtitleFontWeight: 400,
       subtitleColor: '#ffffff', subtitleFontSize: 28, subtitleLetterSpacing: 0, subtitleLineHeight: 1.4,
-      globalScale: 100, glassEffect: false,
+      globalScale: 100, glassEffect: tpl !== 'hero',
       cornerTopLeft: '', cornerTopRight: '', cornerBottomLeft: '', cornerBottomRight: '',
       cornerTopLeftEnabled: true, cornerTopRightEnabled: true, cornerBottomLeftEnabled: true, cornerBottomRightEnabled: true,
       logoPosition: '', customLogoUrl: '', showLogo: true, showProfileBadge: false,
@@ -716,12 +717,14 @@ server.tool(
     });
 
     const editorSlides = [
-      mkSlide('cover', 'hero', images[0].imageUrl, coverPrompt, input.slides[0]?.title || '', input.slides[0]?.subtitle || '', '', 1, false),
+      mkSlide('cover', 'hero', images[0].imageUrl, coverPrompt, input.slides[0]?.title || '', input.slides[0]?.subtitle || '', '', 1, false, ''),
+      // Template slides: cover image as bg, template-rendered image as renderedUrl (not backgroundUrl to avoid double text)
       ...input.slides.map((s, i) => mkSlide(
         `slide${i+2}`, tplMap[s.template || 'bold-gradient'] || 'content',
-        images[i+1]?.imageUrl || '', '', s.title, s.subtitle || '',
+        images[0].imageUrl, '', s.title, s.subtitle || '',
         i === input.slides.length - 1 ? '' : `Passo ${i+1}`, i+2,
-        i === input.slides.length - 1
+        i === input.slides.length - 1,
+        images[i+1]?.imageUrl || ''
       )),
     ];
 
