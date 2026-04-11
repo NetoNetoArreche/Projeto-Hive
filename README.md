@@ -15,9 +15,13 @@ Crie posts com imagens e legendas geradas por IA, agende publicacoes, extraia cl
 ## O que o OpenHive faz
 
 - **Posts com IA** - Gera imagens (Google Gemini) e legendas, publica no Instagram
+- **Editor Visual** - Editor tipo Figma para slides: edite titulo, subtitulo, fonte, posicao, overlay, fundo, cantos, logo, indicadores, glass effect, word highlights e mais. Preview ao vivo em 1080px
+- **IA no Editor** - Gere conteudo de slides com Gemini, refine textos com instrucoes em linguagem natural ("deixe mais curto", "mude o tom"), gere imagens de fundo por prompt
 - **Carrossel** - Crie carrosseis com 2-10 slides (HTML/Tailwind renderizado ou IA)
 - **Carrossel Misto** - Capa gerada por IA + slides em HTML/Template (melhor dos dois mundos)
-- **Brands** - Cadastre marcas com logo, cores, tom de voz, produtos, **site** e **Instagram**. Agentes de IA podem pesquisar essas URLs para manter consistencia
+- **Carrossel Composto** - Cada slide com fundo IA + overlay HTML/Tailwind com CSS variables do brand
+- **Brands** - Cadastre marcas com logo, 6 cores, 3 fontes, tom de voz, produtos, **site** e **Instagram**. Agentes de IA podem pesquisar essas URLs para manter consistencia
+- **Design Systems** - Biblioteca com 58 inspiracoes visuais (Stripe, Linear, Apple, Notion, Tesla, etc) para criar brands
 - **Calendario** - Visualize e agende posts em calendario
 - **Tarefas** - Gerencie gravacoes e publicacoes com prioridades e prazos
 - **Projetos** - Organize conteudo em projetos com modulos
@@ -27,6 +31,7 @@ Crie posts com imagens e legendas geradas por IA, agende publicacoes, extraia cl
 - **MCP Server** - 40 tools pra usar com Claude, Gemini Antigravity, Cursor e outros
 - **Equipe** - Convide membros com permissoes por pagina
 - **Multi-Instagram** - Conecte varias contas do Instagram
+- **Tema escuro** - Interface dark mode com tons neutros (estilo Figma/Framer)
 
 ---
 
@@ -902,12 +907,23 @@ O token e renovado automaticamente a cada 50 dias.
 | Tool | Descricao |
 |------|-----------|
 | `generate_image` | Gera imagem via Google Gemini |
-| `generate_caption` | Gera legenda otimizada |
+| `generate_caption` | Gera legenda e conteudo de slide com Gemini (fallback estatico se sem API key) |
 | `generate_template_image` | Gera imagem com template HTML pre-definido |
 | `render_html_to_image` | Renderiza HTML/CSS/Tailwind em PNG |
-| `compose_image_with_html_overlay` | Combina imagem IA de fundo + HTML/Tailwind overlay (aceita brand) |
+| `compose_image_with_html_overlay` | Combina imagem IA de fundo + HTML/Tailwind overlay com CSS variables do brand (7 variaveis + logo automatico) |
 | `upload_image` | Upload de imagem base64 |
 | `get_analytics` | Metricas dos posts |
+
+### Editor Visual (via web)
+| Funcionalidade | Descricao |
+|------|-----------|
+| Gerar conteudo com IA | Gera titulo + subtitulo via Gemini baseado no tema |
+| Refinar slide com IA | Refina textos com instrucoes em linguagem natural (ex: "mais curto", "tom profissional") |
+| Gerar imagem de fundo | Gera imagem por prompt via Gemini direto no editor |
+| Templates | 6 templates (hero, content, stat, quote, cta, list) com preview ao vivo |
+| Word highlights | Destaque individual por palavra (cor, bold, italic, underline) |
+| Cantos configuráveis | Texto nos 4 cantos + icones + glass effect |
+| Aspect ratios | 1:1 (Feed), 4:5 (Retrato), 9:16 (Stories) |
 
 ### Tarefas
 | Tool | Descricao |
@@ -1033,6 +1049,12 @@ Equipe > convide por email > defina funcao e paginas permitidas
 
 ## Licenca
 
-[AGPL-3.0](LICENSE)
+**Source Available License** — [ver LICENSE](LICENSE)
 
-Voce pode usar, modificar e distribuir livremente. Se hospedar como servico publico, deve disponibilizar o codigo fonte das suas modificacoes.
+Voce pode usar o OpenHive gratuitamente para uso pessoal e interno. **NAO** e permitido:
+- Vender, revender ou distribuir comercialmente
+- Modificar e redistribuir como produto proprio
+- Oferecer como SaaS para terceiros
+- Remover a marca ou renomear
+
+Para licenciamento comercial: helioarreche@gmail.com
