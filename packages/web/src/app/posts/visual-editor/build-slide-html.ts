@@ -87,7 +87,7 @@ function buildCornerIconSvg(icon: CornerIcon, color: string, size: number): stri
   const isSolid = solidIcons.includes(icon);
   const fillAttr = isSolid ? `fill="${color}"` : 'fill="none"';
   const strokeAttr = isSolid ? `stroke="none"` : `stroke="${color}" stroke-width="2"`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" ${fillAttr} ${strokeAttr} stroke-linecap="round" stroke-linejoin="round">${cfg.svg}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" style="width:${size}px;height:${size}px;min-width:${size}px;display:inline-block;vertical-align:middle;" viewBox="0 0 24 24" ${fillAttr} ${strokeAttr} stroke-linecap="round" stroke-linejoin="round">${cfg.svg}</svg>`;
 }
 
 function buildWordHtml(text: string, highlights: Record<number, WordFormat>, defaultColor: string, font: string, fontSize: number, fontWeight: number, letterSpacing: number, shadow: string): string {
@@ -176,7 +176,7 @@ export function buildSlideHtml(
 
     // Bottom-right: combine text + icon in a flex row if both exist
     if (hasBottomRightText && bottomRightIconSvg) {
-      corners.push(`<div style="position:absolute;bottom:${ci}px;right:${edgeDist}px;display:flex;align-items:center;gap:8px;opacity:${cop};"><span style="font-size:${cfs}px;color:${color};font-family:${font};${shadowSm}${cornerShadow}">${escHtml(s.cornerBottomRight)}</span><span style="${cornerShadow}">${bottomRightIconSvg}</span></div>`);
+      corners.push(`<div style="position:absolute;bottom:${ci}px;right:${edgeDist}px;display:flex;align-items:center;gap:8px;opacity:${cop};"><span style="font-size:${cfs}px;color:${color};font-family:${font};${shadowSm}${cornerShadow}">${escHtml(s.cornerBottomRight)}</span><span style="display:inline-flex;align-items:center;${cornerShadow}">${bottomRightIconSvg}</span></div>`);
     } else if (hasBottomRightText) {
       corners.push(`<div style="position:absolute;bottom:${ci}px;right:${edgeDist}px;font-size:${cfs}px;color:${color};opacity:${cop};font-family:${font};${shadowSm}${cornerShadow}">${escHtml(s.cornerBottomRight)}</div>`);
     }
@@ -185,7 +185,7 @@ export function buildSlideHtml(
   // Corner icon (bottom-right) — only render standalone if no bottom-right text
   let cornerIconHtml = '';
   if (hasBottomRightIcon && bottomRightIconSvg && !hasBottomRightText) {
-    cornerIconHtml = `<div style="position:absolute;bottom:${ci}px;right:${edgeDist}px;opacity:${cop};${cornerShadow}">${bottomRightIconSvg}</div>`;
+    cornerIconHtml = `<div style="position:absolute;bottom:${ci}px;right:${edgeDist}px;opacity:${cop};display:flex;align-items:center;${cornerShadow}">${bottomRightIconSvg}</div>`;
   }
 
   // ── Brand logo ──

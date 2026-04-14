@@ -228,6 +228,40 @@ export default function VisualEditorPage() {
     };
   }
 
+  // Convert an image URL to base64 data URI so Puppeteer can render it without network access
+  async function urlToDataUri(url: string): Promise<string> {
+    if (!url || url.startsWith('data:')) return url;
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(url); // fallback to original
+        reader.readAsDataURL(blob);
+      });
+    } catch { return url; }
+  }
+
+  // Replace all img src URLs and background-image urls in HTML with base64 data URIs
+  async function inlineImagesInHtml(html: string): Promise<string> {
+    const urlSet = new Set<string>();
+    // Match img src="..." and background-image:url('...')
+    const imgRe = /src="([^"]+)"/g;
+    const bgRe = /url\('([^']+)'\)/g;
+    let m;
+    while ((m = imgRe.exec(html)) !== null) { if (!m[1].startsWith('data:')) urlSet.add(m[1]); }
+    while ((m = bgRe.exec(html)) !== null) { if (!m[1].startsWith('data:')) urlSet.add(m[1]); }
+    if (urlSet.size === 0) return html;
+    const urlMap = new Map<string, string>();
+    await Promise.all([...urlSet].map(async (u) => { urlMap.set(u, await urlToDataUri(u)); }));
+    let result = html;
+    for (const [orig, b64] of urlMap) {
+      result = result.split(orig).join(b64);
+    }
+    return result;
+  }
+
   async function renderSlide(slide: SlideState, idx: number, allSlides: SlideState[]): Promise<string> {
     const contentHtml = buildSlideHtml(slide, { aspectRatio, brandLogoUrl, brandName, globalStyle });
     const bg = resolveBackground(slide, idx, allSlides);
@@ -250,7 +284,10 @@ export default function VisualEditorPage() {
     const slideBgColor = slide.slideBgColor || '#000000';
 
     // Full HTML with bg baked in — pass NO backgroundUrl to API so it doesn't add its own
-    const fullHtml = `<div style="position:absolute;inset:0;background:${slideBgColor};">${bgHtml}${overlayHtml}</div><div style="position:absolute;inset:0;z-index:2;">${contentHtml}</div>`;
+    let fullHtml = `<div style="position:absolute;inset:0;background:${slideBgColor};">${bgHtml}${overlayHtml}</div><div style="position:absolute;inset:0;z-index:2;">${contentHtml}</div>`;
+
+    // Convert all image URLs to base64 so Puppeteer can render them without network access to MinIO
+    fullHtml = await inlineImagesInHtml(fullHtml);
 
     const result = await api.generateComposed({
       html: fullHtml,
