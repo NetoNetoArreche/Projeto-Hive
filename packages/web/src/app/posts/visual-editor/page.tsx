@@ -37,6 +37,8 @@ export default function VisualEditorPage() {
   const [savingPost, setSavingPost] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { templates: savedTemplates, saveTemplate: saveStyleTemplate, deleteTemplate: deleteStyleTemplate } = useStyleTemplates();
@@ -125,6 +127,20 @@ export default function VisualEditorPage() {
     if (slides.length <= 1) return;
     setSlides((prev) => prev.filter((s) => s.id !== id));
     setActiveIdx(Math.max(0, activeIdx - 1));
+  }
+
+  function reorderSlides(from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= slides.length || to >= slides.length) return;
+    setSlides((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+    // Keep the moved slide active
+    if (activeIdx === from) setActiveIdx(to);
+    else if (from < activeIdx && to >= activeIdx) setActiveIdx(activeIdx - 1);
+    else if (from > activeIdx && to <= activeIdx) setActiveIdx(activeIdx + 1);
   }
 
   function changeTemplate(tpl: TemplateId) {
@@ -523,11 +539,36 @@ export default function VisualEditorPage() {
               // Resolve background (handles infinite carousel)
               const bg = resolveBackground(slide, idx, slides);
 
+              const isDragging = dragIdx === idx;
+              const isDropTarget = dragOverIdx === idx && dragIdx !== null && dragIdx !== idx;
               return (
                 <div key={slide.id} onClick={() => setActiveIdx(idx)}
-                  className={`flex-shrink-0 h-full cursor-pointer transition-all duration-200 ${isActive ? '' : 'opacity-60 hover:opacity-85'}`}
+                  draggable
+                  onDragStart={(e) => {
+                    setDragIdx(idx);
+                    e.dataTransfer.effectAllowed = 'move';
+                    try { e.dataTransfer.setData('text/plain', String(idx)); } catch {}
+                  }}
+                  onDragOver={(e) => {
+                    if (dragIdx === null) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (dragOverIdx !== idx) setDragOverIdx(idx);
+                  }}
+                  onDragLeave={() => { if (dragOverIdx === idx) setDragOverIdx(null); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragIdx !== null && dragIdx !== idx) reorderSlides(dragIdx, idx);
+                    setDragIdx(null);
+                    setDragOverIdx(null);
+                  }}
+                  onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
+                  className={`relative flex-shrink-0 h-full cursor-grab active:cursor-grabbing transition-all duration-200 ${isActive ? '' : 'opacity-60 hover:opacity-85'} ${isDragging ? 'opacity-40' : ''}`}
                   style={{ aspectRatio: aspectRatio === '9:16' ? '9/16' : aspectRatio === '4:5' ? '4/5' : '1/1' }}
                 >
+                  {isDropTarget && (
+                    <div className={`absolute top-0 bottom-0 w-1 bg-primary rounded-full z-20 pointer-events-none ${dragIdx! < idx ? '-right-3' : '-left-3'}`} />
+                  )}
                   {/* Slide card */}
                   <div className={`w-full h-full rounded-xl overflow-hidden relative shadow-lg border-2 transition-all ${
                     isActive ? 'border-primary shadow-primary/20' : 'border-transparent hover:border-border'
