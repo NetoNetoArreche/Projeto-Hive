@@ -4,7 +4,8 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
-import { Zap, Image as ImageIcon, Edit3, Clock, Send, Save, Loader2, X, Heart, MessageCircle, Share, ChevronLeft, ChevronRight, Layers, Plus, Trash2, Upload, FileText, Link as LinkIcon, Wand2, ArrowRight } from 'lucide-react';
+import { Zap, Image as ImageIcon, Edit3, Clock, Send, Save, Loader2, X, Heart, MessageCircle, Share, ChevronLeft, ChevronRight, Layers, Plus, Trash2, Upload, FileText, Link as LinkIcon, Wand2, ArrowRight, Sparkles } from 'lucide-react';
+import { emptySlide, SlideState, AspectRatio, defaultGlobalStyle } from '../visual-editor/types';
 
 const ASPECT_RATIOS = [
   { value: '1:1', label: '1:1', desc: 'Feed' },
@@ -89,6 +90,111 @@ export default function NewPost() {
     }
     setGenProgress('');
     setGenLoading(false);
+  }
+
+  async function handleGenerateForEditor() {
+    if (!prompt) return;
+    const count = Math.max(1, Math.min(imageCount, 10));
+    setGenLoading(true);
+    setMessage('');
+    setGenProgress(`Gerando ${count} fundo(s) sem texto...`);
+
+    try {
+      // 1. Generate clean backgrounds (no text in the image)
+      const bgPrompt = `${prompt}, fundo limpo, sem texto, no text, blank background, minimal composition`;
+      const bgUrls: string[] = [];
+      let done = 0;
+      await Promise.all(
+        Array.from({ length: count }, async (_, i) => {
+          try {
+            const variation = count > 1 ? `${bgPrompt}, variacao ${i + 1}` : bgPrompt;
+            const r = await api.generateImage(variation, aspectRatio);
+            bgUrls.push(r.imageUrl);
+            done++;
+            setGenProgress(`${done}/${count} fundos gerados...`);
+          } catch {
+            // skip failed
+          }
+        }),
+      );
+
+      if (bgUrls.length === 0) {
+        setMessage('Nao foi possivel gerar os fundos. Tente novamente.');
+        setMessageType('error');
+        setGenLoading(false);
+        setGenProgress('');
+        return;
+      }
+
+      // 2. Generate title/subtitle from the topic
+      setGenProgress('Gerando titulo e subtitulo...');
+      let title = prompt.slice(0, 60);
+      let subtitle = '';
+      let captionText = '';
+      let captionHashtags: string[] = [];
+      try {
+        const cap = await api.generateCaption(prompt);
+        captionText = cap.caption;
+        captionHashtags = cap.hashtags;
+        const parts = cap.caption.split(/\.\s*\n|\n\n|\n/);
+        title = (parts[0] || title).replace(/^[^\w]+|[^\w]+$/g, '').slice(0, 60);
+        subtitle = (parts[1] || '').replace(/^[^\w]+|[^\w]+$/g, '').slice(0, 100);
+      } catch {
+        // fall back to prompt-derived title
+      }
+
+      // 3. Build editorState
+      const total = bgUrls.length;
+      const slides: SlideState[] = bgUrls.map((url, i) => {
+        const tpl = i === 0 ? 'hero' : 'content';
+        const base = emptySlide(i, tpl);
+        return {
+          ...base,
+          backgroundUrl: url,
+          backgroundPrompt: bgPrompt,
+          totalSlides: total,
+          slideNumber: i + 1,
+          title: i === 0 ? title : '',
+          subtitle: i === 0 ? subtitle : '',
+          label: tpl === 'content' ? `Passo ${i}` : '',
+          overlayOpacity: 0.4,
+        };
+      });
+
+      const editorState = {
+        slides,
+        aspectRatio,
+        globalStyle: defaultGlobalStyle(),
+      };
+
+      // 4. Create the post
+      setGenProgress('Criando post...');
+      const isCarousel = bgUrls.length >= 2;
+      const payload: Record<string, unknown> = {
+        caption: captionText,
+        hashtags: captionHashtags,
+        nanoPrompt: prompt,
+        aspectRatio,
+        editorState,
+        mediaType: isCarousel ? 'CAROUSEL' : 'IMAGE',
+        imageUrl: bgUrls[0],
+      };
+      if (isCarousel) {
+        payload.isCarousel = true;
+        payload.images = bgUrls.map((u, idx) => ({ imageUrl: u, order: idx }));
+      }
+
+      const post = (await api.createPost(payload)) as any;
+
+      // 5. Redirect to visual editor
+      router.push(`/posts/visual-editor?postId=${post.id}`);
+    } catch (err: any) {
+      setMessage(err.message || 'Erro ao gerar para o Editor Visual');
+      setMessageType('error');
+    } finally {
+      setGenLoading(false);
+      setGenProgress('');
+    }
   }
 
   async function handleGenerateCaption() {
@@ -244,16 +350,26 @@ export default function NewPost() {
                   </p>
                 )}
               </div>
-              <div className="flex gap-2">
-                <button onClick={handleGenerateImage} disabled={genLoading || !prompt} className="btn-cta flex-1 justify-center text-xs py-2.5">
-                  {genLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : imageCount >= 2 ? <Layers className="w-4 h-4" strokeWidth={1.5} /> : <Plus className="w-4 h-4" strokeWidth={1.5} />}
-                  {genLoading ? (genProgress || 'Gerando...') : imageCount >= 2 ? `Gerar Carrossel (${imageCount})` : images.length > 0 ? 'Adicionar Imagem' : 'Gerar Imagem'}
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={handleGenerateImage} disabled={genLoading || !prompt} className="btn-cta justify-center text-xs py-2.5 flex-col h-auto py-3 gap-1">
+                  <div className="flex items-center gap-1.5">
+                    {genLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : imageCount >= 2 ? <Layers className="w-4 h-4" strokeWidth={1.5} /> : <Wand2 className="w-4 h-4" strokeWidth={1.5} />}
+                    <span className="font-bold">{genLoading ? (genProgress || 'Gerando...') : imageCount >= 2 ? `Imagem Completa (${imageCount})` : 'Imagem Completa'}</span>
+                  </div>
+                  <span className="text-[10px] opacity-80 font-normal normal-case">IA gera tudo (texto + fundo) • não editável</span>
                 </button>
-                <button onClick={handleGenerateCaption} disabled={genLoading || !prompt} className="btn-ghost flex-1 justify-center text-xs py-2.5">
-                  <Edit3 className="w-4 h-4" strokeWidth={1.5} />
-                  Gerar Legenda
+                <button onClick={handleGenerateForEditor} disabled={genLoading || !prompt} className="btn-ghost justify-center text-xs py-2.5 flex-col h-auto py-3 gap-1 border-primary/40 text-primary hover:bg-primary/5">
+                  <div className="flex items-center gap-1.5">
+                    {genLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" strokeWidth={1.5} />}
+                    <span className="font-bold">{genLoading ? (genProgress || 'Gerando...') : `Para Editor Visual${imageCount >= 2 ? ` (${imageCount})` : ''}`}</span>
+                  </div>
+                  <span className="text-[10px] opacity-80 font-normal normal-case">Fundo limpo + texto separado • editável</span>
                 </button>
               </div>
+              <button onClick={handleGenerateCaption} disabled={genLoading || !prompt} className="btn-ghost w-full justify-center text-xs py-2">
+                <Edit3 className="w-4 h-4" strokeWidth={1.5} />
+                Gerar Legenda (sem imagem)
+              </button>
               {images.length > 0 && (
                 <div className="text-center">
                   <span className="text-xs text-text-muted">
