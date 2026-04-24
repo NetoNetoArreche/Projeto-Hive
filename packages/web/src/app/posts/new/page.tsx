@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '../../../lib/api';
-import { Zap, Image as ImageIcon, Edit3, Clock, Send, Save, Loader2, X, Heart, MessageCircle, Share, ChevronLeft, ChevronRight, Layers, Plus, Trash2, Upload, FileText, Link as LinkIcon } from 'lucide-react';
+import { Zap, Image as ImageIcon, Edit3, Clock, Send, Save, Loader2, X, Heart, MessageCircle, Share, ChevronLeft, ChevronRight, Layers, Plus, Trash2, Upload, FileText, Link as LinkIcon, Wand2, ArrowRight } from 'lucide-react';
 
 const ASPECT_RATIOS = [
   { value: '1:1', label: '1:1', desc: 'Feed' },
@@ -36,126 +37,6 @@ export default function NewPost() {
   const [postFile, setPostFile] = useState({ url: '', name: '' });
   const [fileUploading, setFileUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [genMode, setGenMode] = useState<'ai' | 'template' | 'misto' | 'composed'>('ai');
-  const [selectedTemplate, setSelectedTemplate] = useState('bold-gradient');
-  const [templateSubtitle, setTemplateSubtitle] = useState('');
-  const [mistoSlideText, setMistoSlideText] = useState('');
-  const [mistoSlideSubtitle, setMistoSlideSubtitle] = useState('');
-  const [composedBgPrompt, setComposedBgPrompt] = useState('');
-  const [composedHtml, setComposedHtml] = useState('');
-  const [composedOverlayOpacity, setComposedOverlayOpacity] = useState(0.4);
-  const [composedBrandId, setComposedBrandId] = useState<string>('');
-  const [availableBrands, setAvailableBrands] = useState<any[]>([]);
-
-  const TEMPLATES = [
-    { id: 'bold-gradient', name: 'Gradiente Bold', emoji: '🟣' },
-    { id: 'minimal-dark', name: 'Minimal Dark', emoji: '⚫' },
-    { id: 'neon-card', name: 'Neon Card', emoji: '💜' },
-    { id: 'quote-elegant', name: 'Citacao', emoji: '✨' },
-    { id: 'stats-impact', name: 'Impacto', emoji: '📊' },
-    { id: 'split-color', name: 'Split', emoji: '🎨' },
-  ];
-
-  useEffect(() => {
-    api.listBrands()
-      .then((r: any) => {
-        setAvailableBrands(r.items || []);
-        const def = (r.items || []).find((b: any) => b.isDefault);
-        if (def) setComposedBrandId(def.id);
-      })
-      .catch(() => { /* ignore */ });
-  }, []);
-
-  async function handleGenerateComposed() {
-    if (!composedHtml.trim()) {
-      setMessage('HTML do overlay e obrigatorio');
-      setMessageType('error');
-      return;
-    }
-    if (!composedBgPrompt.trim()) {
-      setMessage('Prompt do fundo e obrigatorio');
-      setMessageType('error');
-      return;
-    }
-    setGenLoading(true);
-    setMessage('');
-    try {
-      const result = await api.generateComposed({
-        html: composedHtml,
-        backgroundPrompt: composedBgPrompt,
-        aspectRatio,
-        overlayOpacity: composedOverlayOpacity,
-        brandId: composedBrandId || undefined,
-        applyBrand: !!composedBrandId,
-      });
-      setImages((prev) => [...prev, { url: result.imageUrl, prompt: composedBgPrompt }]);
-      setActiveImageIndex(images.length);
-    } catch (err: any) {
-      setMessage(err.message || 'Erro ao gerar imagem composta');
-      setMessageType('error');
-    }
-    setGenLoading(false);
-  }
-
-  async function handleGenerateTemplate() {
-    if (!prompt) return;
-    setGenLoading(true);
-    setMessage('');
-    try {
-      const result = await api.generateTemplate({
-        title: prompt,
-        subtitle: templateSubtitle || undefined,
-        template: selectedTemplate,
-        aspectRatio,
-      });
-      setImages((prev) => [...prev, { url: result.imageUrl, prompt }]);
-      setActiveImageIndex(images.length);
-    } catch (err: any) {
-      setMessage(err.message || 'Erro ao gerar template');
-      setMessageType('error');
-    }
-    setGenLoading(false);
-  }
-
-  async function handleMistoSlide() {
-    if (!mistoSlideText) return;
-    setGenLoading(true);
-    setMessage('');
-    try {
-      const result = await api.generateTemplate({
-        title: mistoSlideText,
-        subtitle: mistoSlideSubtitle || undefined,
-        template: selectedTemplate,
-        aspectRatio,
-      });
-      setImages((prev) => [...prev, { url: result.imageUrl, prompt: mistoSlideText }]);
-      setActiveImageIndex(images.length);
-      setMistoSlideText('');
-      setMistoSlideSubtitle('');
-    } catch (err: any) {
-      setMessage(err.message || 'Erro ao gerar slide');
-      setMessageType('error');
-    }
-    setGenLoading(false);
-  }
-
-  async function handleMistoCover() {
-    if (!prompt) return;
-    setGenLoading(true);
-    setMessage('');
-    try {
-      const result = await api.generateImage(prompt, aspectRatio);
-      setImages((prev) => {
-        const newImages = [{ url: result.imageUrl, prompt }, ...prev];
-        return newImages;
-      });
-      setActiveImageIndex(0);
-    } catch (err: any) {
-      setMessage(err.message || 'Erro ao gerar capa');
-      setMessageType('error');
-    }
-    setGenLoading(false);
-  }
 
   async function handleFileUpload(file: File) {
     setFileUploading(true);
@@ -285,339 +166,94 @@ export default function NewPost() {
     <div className="max-w-7xl mx-auto animate-fade-in">
       <div className="mb-6">
         <h1 className="text-page-title text-text-primary">Criar Post</h1>
-        <p className="text-sm text-text-secondary mt-1">Gere imagens e legendas com inteligencia artificial</p>
+        <p className="text-sm text-text-secondary mt-1">Gere imagens com IA ou abra o Editor Visual para um carrossel completo</p>
+      </div>
+
+      {/* Mode Entry — choose between AI generation here or Editor Visual */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+        <div className="card p-4 border-2 border-primary bg-primary/5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+              <Wand2 className="w-5 h-5 text-primary" strokeWidth={2} />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-sm font-bold text-text-primary">Gerar com IA</h2>
+              <p className="text-[11px] text-text-secondary mt-0.5">Prompt + IA gera a imagem inteira (rápido)</p>
+            </div>
+          </div>
+        </div>
+        <Link href="/posts/visual-editor" className="card p-4 border-2 border-border hover:border-primary transition-colors group">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-bg-main flex items-center justify-center flex-shrink-0 group-hover:bg-primary/15 transition-colors">
+              <Layers className="w-5 h-5 text-text-secondary group-hover:text-primary transition-colors" strokeWidth={2} />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-sm font-bold text-text-primary">Editor Visual</h2>
+              <p className="text-[11px] text-text-secondary mt-0.5">Carrossel editável, templates, brand, IA integrada</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-text-muted group-hover:text-primary transition-colors" />
+          </div>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Editor */}
         <div className="space-y-5">
-          {/* Generation Mode Toggle + Content */}
+          {/* AI generation */}
           <div className="card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent-pink/10">
-                  <Zap className="w-4 h-4 text-primary" strokeWidth={2} />
-                </div>
-                <h2 className="text-sm font-bold text-text-primary">Gerar Imagem</h2>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent-pink/10">
+                <Zap className="w-4 h-4 text-primary" strokeWidth={2} />
               </div>
-              <div className="flex items-center bg-bg-main rounded-lg p-0.5 flex-wrap">
-                <button
-                  onClick={() => setGenMode('ai')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${genMode === 'ai' ? 'bg-bg-card text-primary shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
-                >
-                  IA
-                </button>
-                <button
-                  onClick={() => setGenMode('template')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${genMode === 'template' ? 'bg-bg-card text-primary shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
-                >
-                  Template
-                </button>
-                <button
-                  onClick={() => setGenMode('misto')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${genMode === 'misto' ? 'bg-bg-card text-primary shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
-                >
-                  Misto
-                </button>
-                <button
-                  onClick={() => setGenMode('composed')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${genMode === 'composed' ? 'bg-bg-card text-primary shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
-                >
-                  HTML + IA
-                </button>
-              </div>
+              <h2 className="text-sm font-bold text-text-primary">Gerar Imagem com IA</h2>
             </div>
             <div className="space-y-3">
-              {/* Shared: Prompt/Title field (AI and Template modes) */}
-              {genMode !== 'misto' && genMode !== 'composed' && (
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
-                    {genMode === 'ai' ? 'Prompt' : 'Texto Principal'}
-                  </label>
-                  <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder={genMode === 'ai' ? "Descreva o tema do post... Ex: 'Post sobre produtividade com dicas de organizacao'" : "Texto que aparece no post... Ex: '5 dicas de produtividade'"}
-                    rows={genMode === 'template' ? 2 : 3}
-                    className="input-field resize-none"
-                  />
-                </div>
-              )}
-              {/* Template mode: subtitle + template selector */}
-              {genMode === 'template' && (
-                <>
-                  <div>
-                    <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Subtitulo (opcional)</label>
-                    <input
-                      value={templateSubtitle}
-                      onChange={(e) => setTemplateSubtitle(e.target.value)}
-                      placeholder="Texto complementar..."
-                      className="input-field"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Template</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {TEMPLATES.map((t) => (
-                        <button
-                          key={t.id}
-                          onClick={() => setSelectedTemplate(t.id)}
-                          className={`p-2.5 rounded-lg text-center transition-all border ${
-                            selectedTemplate === t.id
-                              ? 'border-primary bg-primary/5 text-primary'
-                              : 'border-border bg-bg-card text-text-secondary hover:border-primary/30'
-                          }`}
-                        >
-                          <div className="text-lg mb-0.5">{t.emoji}</div>
-                          <div className="text-[10px] font-semibold">{t.name}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleGenerateTemplate}
-                    disabled={genLoading || !prompt}
-                    className="btn-cta w-full justify-center text-xs py-2.5"
-                  >
-                    {genLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" strokeWidth={1.5} />}
-                    {genLoading ? 'Gerando...' : 'Gerar com Template'}
-                  </button>
-                </>
-              )}
-
-              {/* AI mode: Quantity + buttons */}
-              {genMode === 'ai' && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Quantidade de imagens</label>
-                    <div className="flex gap-1.5">
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                        <button
-                          key={n}
-                          onClick={() => setImageCount(n)}
-                          disabled={n + images.length > 10}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                            imageCount === n
-                              ? 'bg-primary text-white shadow-sm'
-                              : n + images.length > 10
-                              ? 'bg-bg-main text-text-muted/30 cursor-not-allowed'
-                              : 'bg-bg-main text-text-secondary hover:border-primary/50 hover:text-primary'
-                          }`}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                    {imageCount >= 2 && (
-                      <p className="text-[10px] text-primary mt-1.5 font-medium flex items-center gap-1">
-                        <Layers className="w-3 h-3" /> Vai gerar {imageCount} imagens (carrossel)
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={handleGenerateImage} disabled={genLoading || !prompt} className="btn-cta flex-1 justify-center text-xs py-2.5">
-                      {genLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : imageCount >= 2 ? <Layers className="w-4 h-4" strokeWidth={1.5} /> : <Plus className="w-4 h-4" strokeWidth={1.5} />}
-                      {genLoading ? (genProgress || 'Gerando...') : imageCount >= 2 ? `Gerar Carrossel (${imageCount})` : images.length > 0 ? 'Adicionar Imagem' : 'Gerar Imagem'}
-                    </button>
-                    <button onClick={handleGenerateCaption} disabled={genLoading || !prompt} className="btn-ghost flex-1 justify-center text-xs py-2.5">
-                      <Edit3 className="w-4 h-4" strokeWidth={1.5} />
-                      Gerar Legenda
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Misto mode: AI cover + Template slides */}
-              {genMode === 'misto' && (
-                <div className="space-y-4">
-                  <p className="text-[11px] text-text-muted bg-bg-main rounded-lg px-3 py-2">
-                    Capa gerada por IA + slides em HTML/Template. Gere a capa primeiro, depois adicione os slides.
-                  </p>
-
-                  {/* Step 1: AI Cover */}
-                  <div className="border border-border rounded-xl p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">1</div>
-                      <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider">Capa (IA)</h3>
-                      {images.length > 0 && (
-                        <span className="text-[10px] text-status-published bg-emerald-500/10 px-2 py-0.5 rounded-badge font-medium ml-auto">Gerada</span>
-                      )}
-                    </div>
-                    <textarea
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="Descreva a imagem de capa... Ex: 'Imagem vibrante sobre produtividade com icones modernos'"
-                      rows={2}
-                      className="input-field resize-none"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleMistoCover}
-                        disabled={genLoading || !prompt || images.length >= 10}
-                        className="btn-cta flex-1 justify-center text-xs py-2"
-                      >
-                        {genLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" strokeWidth={2} />}
-                        {genLoading ? 'Gerando...' : images.length > 0 ? 'Regerar Capa' : 'Gerar Capa com IA'}
-                      </button>
-                      <button onClick={handleGenerateCaption} disabled={genLoading || !prompt} className="btn-ghost flex-1 justify-center text-xs py-2">
-                        <Edit3 className="w-3.5 h-3.5" strokeWidth={1.5} />
-                        Gerar Legenda
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Step 2: Template Slides */}
-                  <div className="border border-border rounded-xl p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-accent-pink/10 flex items-center justify-center text-[10px] font-bold text-accent-pink">2</div>
-                      <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider">Slides (Template)</h3>
-                      {images.length >= 2 && (
-                        <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-badge font-medium ml-auto">{images.length - 1} slides</span>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-text-muted mb-1 uppercase tracking-wider">Texto do slide</label>
-                      <input
-                        value={mistoSlideText}
-                        onChange={(e) => setMistoSlideText(e.target.value)}
-                        placeholder="Ex: '5 dicas de produtividade'"
-                        className="input-field"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-text-muted mb-1 uppercase tracking-wider">Subtitulo (opcional)</label>
-                      <input
-                        value={mistoSlideSubtitle}
-                        onChange={(e) => setMistoSlideSubtitle(e.target.value)}
-                        placeholder="Texto complementar..."
-                        className="input-field"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-text-muted mb-1 uppercase tracking-wider">Template</label>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {TEMPLATES.map((t) => (
-                          <button
-                            key={t.id}
-                            onClick={() => setSelectedTemplate(t.id)}
-                            className={`p-2 rounded-lg text-center transition-all border ${
-                              selectedTemplate === t.id
-                                ? 'border-primary bg-primary/5 text-primary'
-                                : 'border-border bg-bg-card text-text-secondary hover:border-primary/30'
-                            }`}
-                          >
-                            <div className="text-base mb-0.5">{t.emoji}</div>
-                            <div className="text-[9px] font-semibold">{t.name}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Prompt</label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Descreva o tema do post... Ex: 'Post sobre produtividade com dicas de organizacao'"
+                  rows={3}
+                  className="input-field resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Quantidade de imagens</label>
+                <div className="flex gap-1.5">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                     <button
-                      onClick={handleMistoSlide}
-                      disabled={genLoading || !mistoSlideText || images.length >= 10}
-                      className="btn-ghost w-full justify-center text-xs py-2 border-primary/30 text-primary hover:bg-primary/5"
+                      key={n}
+                      onClick={() => setImageCount(n)}
+                      disabled={n + images.length > 10}
+                      className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                        imageCount === n
+                          ? 'bg-primary text-white shadow-sm'
+                          : n + images.length > 10
+                          ? 'bg-bg-main text-text-muted/30 cursor-not-allowed'
+                          : 'bg-bg-main text-text-secondary hover:border-primary/50 hover:text-primary'
+                      }`}
                     >
-                      {genLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" strokeWidth={2} />}
-                      {genLoading ? 'Gerando...' : 'Adicionar Slide'}
+                      {n}
                     </button>
-                  </div>
+                  ))}
                 </div>
-              )}
-
-              {/* Composed mode: AI background + HTML/Tailwind overlay */}
-              {genMode === 'composed' && (
-                <div className="space-y-4">
-                  <p className="text-[11px] text-text-muted bg-bg-main rounded-lg px-3 py-2">
-                    Imagem de fundo gerada por IA + overlay HTML/Tailwind por cima.
-                    Use as variaveis CSS do brand: <code className="text-primary">var(--brand-primary)</code>, <code className="text-primary">var(--brand-secondary)</code>, <code className="text-primary">var(--brand-accent)</code>.
+                {imageCount >= 2 && (
+                  <p className="text-[10px] text-primary mt-1.5 font-medium flex items-center gap-1">
+                    <Layers className="w-3 h-3" /> Vai gerar {imageCount} imagens (carrossel)
                   </p>
-
-                  {/* Background prompt */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Prompt do fundo (IA)</label>
-                      <button
-                        type="button"
-                        onClick={() => setComposedBgPrompt(prompt)}
-                        disabled={!prompt}
-                        className="text-[10px] text-primary hover:underline disabled:opacity-30 disabled:no-underline"
-                      >
-                        Usar prompt do post
-                      </button>
-                    </div>
-                    <textarea
-                      value={composedBgPrompt}
-                      onChange={(e) => setComposedBgPrompt(e.target.value)}
-                      placeholder="Ex: 'Fundo abstrato com formas geometricas roxas e gradiente, estilo moderno'"
-                      rows={2}
-                      className="input-field resize-none"
-                    />
-                  </div>
-
-                  {/* HTML overlay */}
-                  <div>
-                    <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">HTML do overlay</label>
-                    <textarea
-                      value={composedHtml}
-                      onChange={(e) => setComposedHtml(e.target.value)}
-                      placeholder={`<div class="flex items-center justify-center w-full h-full p-16">
-  <h1 class="text-7xl font-black text-white text-center" style="text-shadow: 0 4px 30px rgba(0,0,0,0.6);">
-    Seu titulo
-  </h1>
-</div>`}
-                      rows={8}
-                      className="input-field resize-none font-mono text-[11px]"
-                    />
-                    <p className="text-[10px] text-text-muted mt-1">Tailwind CSS disponivel via CDN. Use absolute, flex, grid, classes utilitarias.</p>
-                  </div>
-
-                  {/* Brand selector */}
-                  {availableBrands.length > 0 && (
-                    <div>
-                      <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Aplicar Brand (cores + logo)</label>
-                      <select
-                        value={composedBrandId}
-                        onChange={(e) => setComposedBrandId(e.target.value)}
-                        className="input-field"
-                      >
-                        <option value="">Nenhum (HTML puro)</option>
-                        {availableBrands.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.name} {b.isDefault ? '(padrao)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Overlay opacity */}
-                  <div>
-                    <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
-                      Escurecer fundo: {Math.round(composedOverlayOpacity * 100)}%
-                    </label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      value={composedOverlayOpacity}
-                      onChange={(e) => setComposedOverlayOpacity(Number(e.target.value))}
-                      className="w-full"
-                    />
-                    <p className="text-[10px] text-text-muted">Camada escura entre fundo e HTML para textos brancos ficarem legiveis</p>
-                  </div>
-
-                  <button
-                    onClick={handleGenerateComposed}
-                    disabled={genLoading || !composedHtml || !composedBgPrompt}
-                    className="btn-cta w-full justify-center text-xs py-2.5"
-                  >
-                    {genLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" strokeWidth={1.5} />}
-                    {genLoading ? 'Gerando fundo + compondo...' : 'Gerar Imagem Composta'}
-                  </button>
-                </div>
-              )}
-
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleGenerateImage} disabled={genLoading || !prompt} className="btn-cta flex-1 justify-center text-xs py-2.5">
+                  {genLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : imageCount >= 2 ? <Layers className="w-4 h-4" strokeWidth={1.5} /> : <Plus className="w-4 h-4" strokeWidth={1.5} />}
+                  {genLoading ? (genProgress || 'Gerando...') : imageCount >= 2 ? `Gerar Carrossel (${imageCount})` : images.length > 0 ? 'Adicionar Imagem' : 'Gerar Imagem'}
+                </button>
+                <button onClick={handleGenerateCaption} disabled={genLoading || !prompt} className="btn-ghost flex-1 justify-center text-xs py-2.5">
+                  <Edit3 className="w-4 h-4" strokeWidth={1.5} />
+                  Gerar Legenda
+                </button>
+              </div>
               {images.length > 0 && (
                 <div className="text-center">
                   <span className="text-xs text-text-muted">
