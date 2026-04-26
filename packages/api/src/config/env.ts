@@ -31,6 +31,13 @@ const envSchema = z.object({
   MINIO_PUBLIC_URL: z.string().default('http://localhost:9000'),
   MINIO_BUCKET: z.string().default('instapost-images'),
 
+  // URL pattern: MinIO uses {PUBLIC_URL}/{BUCKET}/{key}, R2 dev URL uses {PUBLIC_URL}/{key}.
+  // Set to 'false' for R2 (pub-xxx.r2.dev URLs don't include the bucket name).
+  STORAGE_PUBLIC_URL_INCLUDES_BUCKET: z
+    .string()
+    .transform((v) => v !== 'false')
+    .default('true'),
+
   // Cloudinary — used as the public-facing host for images sent to Meta.
   // Meta has tightened its allowlist for image_url hostnames; self-hosted
   // domains (sslip.io, R2, custom Let's Encrypt etc.) get rejected with

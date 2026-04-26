@@ -115,6 +115,7 @@ export async function generateImage(params: GenerateImageParams): Promise<Genera
     'Content-Type': contentType,
   });
 
-  const imageUrl = `${env.MINIO_PUBLIC_URL}/${env.MINIO_BUCKET}/${key}`;
+  const { buildPublicUrl } = await import('./storage.service');
+  const imageUrl = buildPublicUrl(key);
   return { imageUrl, minioKey: key };
 }
