@@ -53,9 +53,9 @@ services:
       PORT: '3001'
       DATABASE_URL: postgresql://${POSTGRES_USER:-openhive}:${DB_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-openhive}
       REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379
-      MINIO_ENDPOINT: minio
-      MINIO_PORT: '9000'
-      MINIO_USE_SSL: 'false'
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio}
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-openhive-images}
