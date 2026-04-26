@@ -5,7 +5,7 @@ import { api } from '../../lib/api';
 import { useAuth } from '../../components/AuthProvider';
 import {
   Camera, Zap, Send, Monitor, LogOut, CheckCircle, XCircle, Plus, Trash2,
-  Loader2, Eye, EyeOff, Save, Copy, Check, ExternalLink, Hexagon,
+  Loader2, Eye, EyeOff, Save, Copy, Check, ExternalLink, Hexagon, Cloud,
 } from 'lucide-react';
 import { useConfirm } from '@/components/ConfirmModal';
 
@@ -77,6 +77,18 @@ const SERVICES: ServiceConfig[] = [
     fields: [
       { key: 'TELEGRAM_BOT_TOKEN', label: 'Bot Token', placeholder: '123456:ABCxxxxxxx...' },
       { key: 'TELEGRAM_ALLOWED_CHAT_IDS', label: 'Chat IDs (separados por virgula)', placeholder: '123456789,987654321' },
+    ],
+  },
+  {
+    name: 'Cloudinary (obrigatorio para publicar no Instagram)',
+    description: 'Meta apertou o filtro de hosts em 2026 — Cloudinary e o CDN intermediario que faz Meta aceitar suas imagens. Free tier 25GB/mes em cloudinary.com',
+    icon: Cloud,
+    iconBg: 'bg-sky-500/10',
+    iconColor: 'text-sky-500',
+    fields: [
+      { key: 'CLOUDINARY_CLOUD_NAME', label: 'Cloud Name', placeholder: 'dxxxxxxxx' },
+      { key: 'CLOUDINARY_API_KEY', label: 'API Key', placeholder: '15 digitos' },
+      { key: 'CLOUDINARY_API_SECRET', label: 'API Secret', placeholder: 'clica em "reveal" no dashboard Cloudinary' },
     ],
   },
 ];

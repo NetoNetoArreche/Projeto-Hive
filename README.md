@@ -856,6 +856,43 @@ Todas configuradas pela interface web em **Configuracoes** (menu lateral).
 
 O token e renovado automaticamente a cada 50 dias.
 
+### Cloudinary (OBRIGATORIO para publicar no Instagram)
+
+> ⚠️ **Por que e necessario:** desde Abril/2026 a API do Meta endureceu o filtro
+> de hostnames para `image_url`. Hosts auto-hospedados como `*.sslip.io`,
+> `*.nip.io`, dominios com IP literal, R2 dev URLs, S3 default URLs e ate
+> dominios proprios novos com Let's Encrypt valido sao silenciosamente
+> rejeitados com `error_subcode: 2207052` ("Falha ao baixar midia") mesmo
+> quando a imagem esta publicamente acessivel e em formato valido.
+>
+> Hosts com reputacao alta no Meta (Cloudinary, Imgur, Wikipedia, Unsplash)
+> continuam funcionando. O OpenHive usa o **Cloudinary** como camada
+> intermediaria: a imagem sai do MinIO/R2/storage local, e mirrorada para o
+> Cloudinary, e a URL `res.cloudinary.com` e o que vai para a API do Meta.
+>
+> **Sem Cloudinary configurado, geracao/edicao funcionam, mas publicar no
+> Instagram falha.**
+
+1. Cria conta gratuita em [cloudinary.com/users/register_free](https://cloudinary.com/users/register_free)
+   - Free tier: **25 GB storage + 25 GB bandwidth/mes** (cobre milhares de posts)
+   - Sem cartao de credito
+2. Confirma o email
+3. Dashboard > **Programmable Media** > pega:
+   - **Cloud Name** (ex: `dxxxxxxxx`)
+   - **API Key** (15 digitos)
+   - **API Secret** (clica em "reveal")
+4. No OpenHive > Configuracoes > **Cloudinary** > cola as 3 e salva
+
+Tambem pode setar via env:
+```env
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
+```
+
+As imagens originais continuam no seu MinIO/R2 — Cloudinary recebe so uma
+copia JPEG otimizada (~150 KB/post) na hora de publicar.
+
 ### Telegram Bot
 
 1. No Telegram, fale com [@BotFather](https://t.me/BotFather) > `/newbot`

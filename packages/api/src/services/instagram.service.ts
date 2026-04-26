@@ -21,10 +21,12 @@ function sleep(ms: number) {
  * (Meta-friendly) → upload to Cloudinary → return secure_url.
  */
 async function ensureMetaCompatibleUrl(imageUrl: string): Promise<string> {
-  if (!isCloudinaryConfigured()) {
+  if (!(await isCloudinaryConfigured())) {
     throw new Error(
-      'Cloudinary not configured — Meta requires images to be hosted on a whitelisted CDN. ' +
-      'Set CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET in env.',
+      'Cloudinary não configurado. Meta apertou o filtro de hostnames em 2026 e ' +
+      'rejeita imagens hospedadas em hosts auto-hospedados (sslip.io, R2, MinIO direto, etc). ' +
+      'Configure suas credenciais Cloudinary em /settings → Cloudinary. ' +
+      'Free tier 25GB/mês em https://cloudinary.com/users/register_free',
     );
   }
 
