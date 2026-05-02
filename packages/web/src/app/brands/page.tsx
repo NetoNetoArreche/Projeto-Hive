@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api';
-import { Plus, Trash2, Pencil, Star, X, Loader2, Palette, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Pencil, Star, X, Loader2, Palette, Upload, Image as ImageIcon, Instagram, Facebook, Linkedin, Twitter, Sparkles } from 'lucide-react';
 import { useConfirm } from '@/components/ConfirmModal';
 
 interface Brand {
@@ -24,6 +24,9 @@ interface Brand {
   instagramUrl?: string | null;
   products: string[];
   defaultHashtags: string[];
+  defaultPlatforms: string[];
+  tonePrompt?: string | null;
+  stylePrompt?: string | null;
   isDefault: boolean;
 }
 
@@ -45,6 +48,9 @@ const EMPTY_BRAND: Partial<Brand> = {
   instagramUrl: '',
   products: [],
   defaultHashtags: [],
+  defaultPlatforms: ['INSTAGRAM'],
+  tonePrompt: '',
+  stylePrompt: '',
   isDefault: false,
 };
 
@@ -56,6 +62,7 @@ export default function BrandsPage() {
   const [editing, setEditing] = useState<Partial<Brand>>(EMPTY_BRAND);
   const [productsText, setProductsText] = useState('');
   const [hashtagsText, setHashtagsText] = useState('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['INSTAGRAM']);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,6 +82,7 @@ export default function BrandsPage() {
     setEditing(EMPTY_BRAND);
     setProductsText('');
     setHashtagsText('');
+    setSelectedPlatforms(['INSTAGRAM']);
     setModalOpen(true);
   }
 
@@ -82,6 +90,7 @@ export default function BrandsPage() {
     setEditing(brand);
     setProductsText((brand.products || []).join(', '));
     setHashtagsText((brand.defaultHashtags || []).join(', '));
+    setSelectedPlatforms(brand.defaultPlatforms?.length ? brand.defaultPlatforms : ['INSTAGRAM']);
     setModalOpen(true);
   }
 
@@ -121,6 +130,9 @@ export default function BrandsPage() {
         instagramUrl: opt(editing.instagramUrl),
         products: productsText.split(',').map((p) => p.trim()).filter(Boolean),
         defaultHashtags: hashtagsText.split(',').map((h) => h.trim().replace(/^#/, '')).filter(Boolean),
+        defaultPlatforms: selectedPlatforms,
+        tonePrompt: opt(editing.tonePrompt),
+        stylePrompt: opt(editing.stylePrompt),
         isDefault: editing.isDefault,
       };
 
@@ -238,6 +250,34 @@ export default function BrandsPage() {
                     ))}
                     {brand.products.length > 3 && (
                       <span className="text-[10px] text-text-muted">+{brand.products.length - 3}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {brand.defaultPlatforms?.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[10px] font-semibold text-text-muted uppercase mb-1.5">Plataformas</p>
+                  <div className="flex gap-1.5">
+                    {brand.defaultPlatforms.includes('INSTAGRAM') && (
+                      <span className="w-6 h-6 rounded-md bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center" title="Instagram">
+                        <Instagram className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                      </span>
+                    )}
+                    {brand.defaultPlatforms.includes('FACEBOOK') && (
+                      <span className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center" title="Facebook">
+                        <Facebook className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                      </span>
+                    )}
+                    {brand.defaultPlatforms.includes('LINKEDIN') && (
+                      <span className="w-6 h-6 rounded-md bg-sky-700 flex items-center justify-center" title="LinkedIn">
+                        <Linkedin className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                      </span>
+                    )}
+                    {brand.defaultPlatforms.includes('X') && (
+                      <span className="w-6 h-6 rounded-md bg-neutral-800 flex items-center justify-center" title="X/Twitter">
+                        <Twitter className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                      </span>
                     )}
                   </div>
                 </div>
@@ -466,6 +506,72 @@ export default function BrandsPage() {
                       placeholder="O que o brand faz? Quais sao seus diferenciais? Pode incluir tom de voz detalhado, posicionamento, audiencia, etc."
                       className="input-field resize-y"
                     />
+                  </div>
+                </div>
+              </section>
+
+              <section>
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-3.5 h-3.5 text-violet-500" strokeWidth={2} />
+                  <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">IA & Publicação</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Plataformas Padrão</label>
+                    <div className="flex gap-2">
+                      {([
+                        { value: 'INSTAGRAM', label: 'Instagram', Icon: Instagram, color: 'from-purple-500 to-pink-500' },
+                        { value: 'FACEBOOK', label: 'Facebook', Icon: Facebook, color: 'bg-blue-600' },
+                        { value: 'LINKEDIN', label: 'LinkedIn', Icon: Linkedin, color: 'bg-sky-700' },
+                        { value: 'X', label: 'X/Twitter', Icon: Twitter, color: 'bg-neutral-800' },
+                      ] as const).map(({ value, label, Icon, color }) => {
+                        const active = selectedPlatforms.includes(value);
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setSelectedPlatforms((prev) =>
+                              prev.includes(value)
+                                ? (prev.length > 1 ? prev.filter((x) => x !== value) : prev)
+                                : [...prev, value],
+                            )}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-badge text-xs font-semibold transition-all border ${
+                              active
+                                ? `bg-gradient-to-br ${color} text-white border-transparent shadow-sm`
+                                : 'bg-bg-main text-text-muted border-border hover:border-text-muted'
+                            }`}
+                          >
+                            <Icon className="w-3.5 h-3.5" strokeWidth={2} />
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-text-muted mt-1">Plataformas pré-selecionadas ao criar posts para este brand</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Prompt de Tom (IA)</label>
+                    <textarea
+                      value={editing.tonePrompt || ''}
+                      onChange={(e) => setEditing({ ...editing, tonePrompt: e.target.value })}
+                      rows={3}
+                      maxLength={2000}
+                      placeholder="Ex: Use linguagem formal e respeitosa. Evite gírias. Foque em valores familiares e espirituais."
+                      className="input-field resize-y text-xs"
+                    />
+                    <p className="text-[10px] text-text-muted mt-1">Instruções para a IA adaptar o tom do caption por plataforma</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Prompt de Estilo Visual (IA)</label>
+                    <textarea
+                      value={editing.stylePrompt || ''}
+                      onChange={(e) => setEditing({ ...editing, stylePrompt: e.target.value })}
+                      rows={3}
+                      maxLength={2000}
+                      placeholder="Ex: Cores quentes e vibrantes. Tipografia bold moderna. Layout clean com bastante espaço."
+                      className="input-field resize-y text-xs"
+                    />
+                    <p className="text-[10px] text-text-muted mt-1">Instruções para geração de imagens e templates visuais</p>
                   </div>
                 </div>
               </section>

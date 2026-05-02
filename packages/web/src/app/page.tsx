@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import {
   Plus,
@@ -22,6 +22,10 @@ import {
   TrendingUp,
   CheckSquare,
   FolderKanban,
+  Facebook,
+  Linkedin,
+  Twitter,
+  Globe,
 } from 'lucide-react';
 
 interface Stats {
@@ -70,8 +74,15 @@ export default function Dashboard() {
   const [igMedia, setIgMedia] = useState<IGMedia[]>([]);
   const [igAccounts, setIgAccounts] = useState<any[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
+  const [socialAccounts, setSocialAccounts] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [fbAccounts, setFbAccounts] = useState<any[]>([]);
+  const [liProfile, setLiProfile] = useState<any>(null);
+  const [liPosts, setLiPosts] = useState<any[]>([]);
+  const [xProfile, setXProfile] = useState<any>(null);
+  const [xPosts, setXPosts] = useState<any[]>([]);
 
-  async function loadIgProfile(accountId?: string) {
+  const loadIgProfile = useCallback(async (accountId?: string) => {
     try {
       const ig = await api.instagramProfile(accountId);
       setIgProfile(ig.profile);
@@ -80,7 +91,7 @@ export default function Dashboard() {
       setIgProfile(null);
       setIgMedia([]);
     }
-  }
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -118,9 +129,36 @@ export default function Dashboard() {
       } catch {
         await loadIgProfile();
       }
+
+      // Load social accounts (all platforms)
+      try {
+        const res: any = await api.listSocialAccounts();
+        setSocialAccounts(Array.isArray(res) ? res : res?.data || []);
+      } catch {}
+
+      // Load brands
+      try {
+        const res: any = await api.listBrands();
+        setBrands(res?.items || []);
+      } catch {}
+
+      try {
+        const fbRes: any = await api.facebookProfiles();
+        if (fbRes?.length) { setFbAccounts(fbRes); }
+      } catch {}
+
+      try {
+        const li: any = await api.linkedinProfile();
+        if (li?.profile) { setLiProfile(li.profile); setLiPosts(li.recentPosts || []); }
+      } catch {}
+
+      try {
+        const x: any = await api.xProfile();
+        if (x?.profile) { setXProfile(x.profile); setXPosts(x.recentPosts || []); }
+      } catch {}
     }
     load();
-  }, []);
+  }, [loadIgProfile]);
 
   const totalLikes = igMedia.reduce((sum, m) => sum + (m.like_count ?? 0), 0);
   const totalComments = igMedia.reduce((sum, m) => sum + (m.comments_count ?? 0), 0);
@@ -264,6 +302,7 @@ export default function Dashboard() {
               <div className="flex gap-1.5">
                 {igAccounts.map((acc: any) => (
                   <button
+                    type="button"
                     key={acc.id}
                     onClick={() => { setSelectedAccount(acc.id); loadIgProfile(acc.id); }}
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
@@ -352,7 +391,7 @@ export default function Dashboard() {
                   )}
                   {(media.media_type === 'VIDEO' || media.media_type === 'REEL') && (
                     <div className="absolute top-1.5 right-1.5 bg-black/60 rounded-full p-1">
-                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor" aria-label="Video"><title>Video</title><path d="M8 5v14l11-7z"/></svg>
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -365,6 +404,120 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Multi-Platform Feeds */}
+      {(fbAccounts.length > 0 || liProfile || xProfile) && (
+        <div className="card p-6 mb-6">
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+              <Globe className="w-4 h-4 text-indigo-500" strokeWidth={1.5} />
+            </div>
+            <h2 className="text-section-title text-text-primary">Outras Plataformas</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            {fbAccounts.map((fb: any) => (
+              <div key={fb.accountId}>
+                <div className="flex items-center gap-3 mb-4">
+                  {fb.profile?.picture ? (
+                    <img src={fb.profile.picture} alt="" className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                      <Facebook className="w-5 h-5 text-white" strokeWidth={1.5} />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-text-primary truncate">{fb.profile?.name || 'Facebook'}</p>
+                    <p className="text-xs text-text-secondary">{formatNumber(fb.profile?.fanCount || 0)} seguidores</p>
+                  </div>
+                </div>
+                {fb.recentPosts?.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {fb.recentPosts.slice(0, 4).map((post: any) => (
+                      <a key={post.id} href={post.permalink} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-xl bg-bg-main hover:bg-bg-card-hover transition-colors group">
+                        <p className="text-xs text-text-primary line-clamp-2 group-hover:text-primary transition-colors">{post.message || 'Sem texto'}</p>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="text-[10px] text-text-muted">{new Date(post.createdAt).toLocaleDateString('pt-BR')}</span>
+                          <span className="flex items-center gap-0.5 text-[10px] text-pink-500"><Heart className="w-3 h-3" />{post.likes}</span>
+                          <span className="flex items-center gap-0.5 text-[10px] text-blue-500"><MessageCircle className="w-3 h-3" />{post.comments}</span>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-text-muted">Nenhum post recente</p>
+                )}
+              </div>
+            ))}
+
+            {/* LinkedIn Feed */}
+            {liProfile && (
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  {liProfile.picture ? (
+                    <img src={liProfile.picture} alt="" className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-sky-700 flex items-center justify-center">
+                      <Linkedin className="w-5 h-5 text-white" strokeWidth={1.5} />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-text-primary truncate">{liProfile.name}</p>
+                    <p className="text-xs text-text-secondary">LinkedIn</p>
+                  </div>
+                </div>
+                {liPosts.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {liPosts.slice(0, 4).map((post: any) => (
+                      <a key={post.id} href={post.permalink} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-xl bg-bg-main hover:bg-bg-card-hover transition-colors group">
+                        <p className="text-xs text-text-primary line-clamp-2 group-hover:text-sky-600 transition-colors">{post.message || 'Sem texto'}</p>
+                        <span className="text-[10px] text-text-muted mt-1 block">{new Date(post.createdAt).toLocaleDateString('pt-BR')}</span>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-text-muted">Nenhum post recente</p>
+                )}
+              </div>
+            )}
+
+            {/* X Feed */}
+            {xProfile && (
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  {xProfile.picture ? (
+                    <img src={xProfile.picture} alt="" className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center">
+                      <Twitter className="w-5 h-5 text-white" strokeWidth={1.5} />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-text-primary truncate">{xProfile.name}</p>
+                    <p className="text-xs text-text-secondary">@{xProfile.username} · {formatNumber(xProfile.metrics?.followers_count)} seguidores</p>
+                  </div>
+                </div>
+                {xPosts.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {xPosts.slice(0, 4).map((post: any) => (
+                      <a key={post.id} href={post.permalink} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-xl bg-bg-main hover:bg-bg-card-hover transition-colors group">
+                        <p className="text-xs text-text-primary line-clamp-2 group-hover:text-neutral-700 transition-colors">{post.message}</p>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="text-[10px] text-text-muted">{new Date(post.createdAt).toLocaleDateString('pt-BR')}</span>
+                          <span className="flex items-center gap-0.5 text-[10px] text-pink-500"><Heart className="w-3 h-3" />{post.likes}</span>
+                          <span className="flex items-center gap-0.5 text-[10px] text-text-muted"><TrendingUp className="w-3 h-3" />{post.retweets}</span>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-text-muted">Nenhum tweet recente</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

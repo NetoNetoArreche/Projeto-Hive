@@ -97,10 +97,10 @@ export const api = {
       body: JSON.stringify({ prompt, aspectRatio }),
     }),
 
-  generateCaption: (topic: string, tone?: string) =>
+  generateCaption: (topic: string, tone?: string, brandId?: string) =>
     request<{ caption: string; hashtags: string[] }>('/api/generate/caption', {
       method: 'POST',
-      body: JSON.stringify({ topic, tone }),
+      body: JSON.stringify({ topic, tone, brandId }),
     }),
 
   refineSlide: (body: { title: string; subtitle?: string; label?: string; instruction: string }) =>
@@ -325,6 +325,31 @@ export const api = {
     request(`/api/instagram/accounts/${id}/default`, { method: 'PUT' }),
   deleteInstagramAccount: (id: string) =>
     request(`/api/instagram/accounts/${id}`, { method: 'DELETE' }),
+
+  // Social Accounts (multi-platform)
+  listSocialAccounts: () => request<any[]>('/api/social-accounts'),
+  addSocialAccount: (body: { platform: string; accessToken: string; refreshToken?: string; platformUserId: string; username?: string; displayName?: string; pageId?: string; expiresAt?: string }) =>
+    request('/api/social-accounts', { method: 'POST', body: JSON.stringify(body) }),
+  setDefaultSocialAccount: (id: string) =>
+    request(`/api/social-accounts/${id}/default`, { method: 'PUT' }),
+  deleteSocialAccount: (id: string) =>
+    request(`/api/social-accounts/${id}`, { method: 'DELETE' }),
+
+  // Calendar Import
+  importCalendar: (body: { icsContent: string; brandId?: string; platforms?: string[] }) =>
+    request<{ imported: number; postIds: string[] }>('/api/calendar/import', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  getLinkedInAuthUrl: () => request<{ authUrl: string; state: string }>('/api/social-accounts/linkedin/auth-url'),
+  getXAuthUrl: () => request<{ authUrl: string; state: string; codeVerifier: string }>('/api/social-accounts/x/auth-url'),
+
+  facebookProfile: (accountId?: string) =>
+    request<any>(`/api/social-accounts/facebook/profile${accountId ? `?accountId=${accountId}` : ''}`),
+  facebookProfiles: () => request<any>('/api/social-accounts/facebook/profiles'),
+  linkedinProfile: () => request<any>('/api/social-accounts/linkedin/profile'),
+  xProfile: () => request<any>('/api/social-accounts/x/profile'),
   uploadYoutubeCookies: async (file: File) => {
     const formData = new FormData();
     formData.append('cookies', file);

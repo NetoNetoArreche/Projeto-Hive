@@ -193,7 +193,7 @@ export default function VisualEditorPage() {
     setGenLoading('content');
     try {
       const topic = caption || active.title;
-      const r = await api.generateCaption(topic);
+      const r = await api.generateCaption(topic, undefined, brandId);
       const parts = r.caption.split('.\n');
       updateActive({ title: parts[0]?.slice(0, 60) || active.title, subtitle: parts[1]?.slice(0, 100) || active.subtitle });
     } catch (e: any) { setMessage(e.message); setMessageType('error'); }

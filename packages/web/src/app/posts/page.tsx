@@ -3,7 +3,14 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '../../lib/api';
-import { Plus, Trash2, Send, Calendar, X, Loader2, FileText, Image as ImageIcon, Layers, ChevronLeft, ChevronRight, Pencil, Video as VideoIcon, Film, Wand2 } from 'lucide-react';
+import { Plus, Trash2, Send, Calendar, X, Loader2, FileText, Image as ImageIcon, Layers, ChevronLeft, ChevronRight, Pencil, Video as VideoIcon, Film, Wand2, Instagram, Facebook, Linkedin, Twitter } from 'lucide-react';
+
+const PLATFORM_ICONS: Record<string, { icon: typeof Instagram; color: string }> = {
+  INSTAGRAM: { icon: Instagram, color: 'text-pink-500' },
+  FACEBOOK: { icon: Facebook, color: 'text-blue-600' },
+  LINKEDIN: { icon: Linkedin, color: 'text-sky-700' },
+  X: { icon: Twitter, color: 'text-neutral-700' },
+};
 import { useConfirm } from '@/components/ConfirmModal';
 
 const STATUS_BADGE: Record<string, string> = {
@@ -222,16 +229,28 @@ export default function PostsList() {
                     )}
                     <div>
                       <p className="text-sm text-text-primary max-w-xs truncate">{post.caption || 'Sem legenda'}</p>
-                      {post.mediaType === 'VIDEO' && (
-                        <span className="text-[10px] text-primary font-bold uppercase">
-                          {post.publishMode === 'STORIES' ? 'Stories' : post.publishMode === 'FEED' ? 'Feed Video' : 'Reels'}
-                        </span>
-                      )}
-                      {(post.isCarousel || (post.editorState?.slides?.length ?? 0) >= 2) && (
-                        <span className="text-[10px] text-text-muted">
-                          {post.images?.length || post.editorState?.slides?.length || 0} slides
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {post.mediaType === 'VIDEO' && (
+                          <span className="text-[10px] text-primary font-bold uppercase">
+                            {post.publishMode === 'STORIES' ? 'Stories' : post.publishMode === 'FEED' ? 'Feed Video' : 'Reels'}
+                          </span>
+                        )}
+                        {(post.isCarousel || (post.editorState?.slides?.length ?? 0) >= 2) && (
+                          <span className="text-[10px] text-text-muted">
+                            {post.images?.length || post.editorState?.slides?.length || 0} slides
+                          </span>
+                        )}
+                        {(post.platforms as string[])?.length > 0 && (
+                          <div className="flex items-center gap-0.5">
+                            {(post.platforms as string[]).map((p: string) => {
+                              const cfg = PLATFORM_ICONS[p];
+                              if (!cfg) return null;
+                              const Icon = cfg.icon;
+                              return <Icon key={p} className={`w-3 h-3 ${cfg.color}`} strokeWidth={2} />;
+                            })}
+                          </div>
+                        )}
+                      </div>
                       {post.status === 'FAILED' && post.lastError && (
                         <p className="text-[10px] text-status-failed mt-1 max-w-xs truncate" title={post.lastError}>
                           {post.lastError}

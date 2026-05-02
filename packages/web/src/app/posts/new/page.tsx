@@ -4,8 +4,18 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
-import { Zap, Image as ImageIcon, Clock, Send, Save, Loader2, X, Heart, MessageCircle, Share, ChevronLeft, ChevronRight, Layers, Plus, Trash2, Upload, FileText, Link as LinkIcon, Wand2, ArrowRight, Sparkles } from 'lucide-react';
+import { Zap, Image as ImageIcon, Clock, Send, Save, Loader2, X, Heart, MessageCircle, Share, ChevronLeft, ChevronRight, Layers, Plus, Trash2, Upload, FileText, Link as LinkIcon, Wand2, ArrowRight, Sparkles, Instagram, Facebook, Linkedin, Twitter, Palette } from 'lucide-react';
+
+type Platform = 'INSTAGRAM' | 'FACEBOOK' | 'LINKEDIN' | 'X';
+
+const PLATFORM_OPTIONS: { value: Platform; label: string; icon: typeof Instagram; color: string }[] = [
+  { value: 'INSTAGRAM', label: 'Instagram', icon: Instagram, color: 'bg-gradient-to-br from-purple-500 to-pink-500' },
+  { value: 'FACEBOOK', label: 'Facebook', icon: Facebook, color: 'bg-blue-600' },
+  { value: 'LINKEDIN', label: 'LinkedIn', icon: Linkedin, color: 'bg-sky-700' },
+  { value: 'X', label: 'X/Twitter', icon: Twitter, color: 'bg-neutral-800' },
+];
 import { emptySlide, SlideState, AspectRatio, defaultGlobalStyle } from '../visual-editor/types';
+import { useEffect } from 'react';
 
 const ASPECT_RATIOS = [
   { value: '1:1', label: '1:1', desc: 'Feed' },
@@ -35,9 +45,30 @@ export default function NewPost() {
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
   const [showFullImage, setShowFullImage] = useState(false);
   const [driveLink, setDriveLink] = useState('');
+  const [platforms, setPlatforms] = useState<Platform[]>(['INSTAGRAM']);
+  const [brands, setBrands] = useState<{ id: string; name: string; primaryColor: string; defaultPlatforms: string[] }[]>([]);
+  const [selectedBrandId, setSelectedBrandId] = useState<string>('');
   const [postFile, setPostFile] = useState({ url: '', name: '' });
   const [fileUploading, setFileUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function togglePlatform(p: Platform) {
+    setPlatforms((prev) =>
+      prev.includes(p) ? (prev.length > 1 ? prev.filter((x) => x !== p) : prev) : [...prev, p],
+    );
+  }
+
+  useEffect(() => {
+    api.listBrands().then((res) => {
+      const items = (res.items || []) as any[];
+      setBrands(items.map((b) => ({ id: b.id, name: b.name, primaryColor: b.primaryColor, defaultPlatforms: b.defaultPlatforms || ['INSTAGRAM'] })));
+      const def = items.find((b: any) => b.isDefault);
+      if (def) {
+        setSelectedBrandId(def.id);
+        setPlatforms((def.defaultPlatforms || ['INSTAGRAM']).filter((p: string) => PLATFORM_OPTIONS.some((o) => o.value === p)) as Platform[]);
+      }
+    }).catch(() => {});
+  }, []);
 
   async function handleFileUpload(file: File) {
     setFileUploading(true);
@@ -72,7 +103,7 @@ export default function NewPost() {
       // Only auto-generate caption if it's empty (don't overwrite what the user typed)
       if (caption.trim() || hashtags.trim()) return null;
       try {
-        return await api.generateCaption(prompt);
+        return await api.generateCaption(prompt, undefined, selectedBrandId);
       } catch {
         return null;
       }
@@ -152,7 +183,7 @@ export default function NewPost() {
       let captionText = '';
       let captionHashtags: string[] = [];
       try {
-        const cap = await api.generateCaption(prompt);
+        const cap = await api.generateCaption(prompt, undefined, selectedBrandId);
         captionText = cap.caption;
         captionHashtags = cap.hashtags;
         const parts = cap.caption.split(/\.\s*\n|\n\n|\n/);
@@ -197,7 +228,9 @@ export default function NewPost() {
         editorState,
         mediaType: isCarousel ? 'CAROUSEL' : 'IMAGE',
         imageUrl: bgUrls[0],
+        platforms,
       };
+      if (selectedBrandId) payload.brandId = selectedBrandId;
       if (isCarousel) {
         payload.isCarousel = true;
         payload.images = bgUrls.map((u, idx) => ({ imageUrl: u, order: idx }));
@@ -233,7 +266,10 @@ export default function NewPost() {
         hashtags: hashtags.split(',').map((h) => h.trim()).filter(Boolean),
         nanoPrompt: prompt || undefined,
         aspectRatio,
+        platforms,
       };
+
+      if (selectedBrandId) payload.brandId = selectedBrandId;
 
       if (driveLink) payload.driveLink = driveLink;
       if (postFile.url) payload.fileUrl = postFile.url;
@@ -407,6 +443,68 @@ export default function NewPost() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Brand Selector */}
+          {brands.length > 1 && (
+            <div className="card p-5">
+              <label className="block text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Brand</label>
+              <div className="flex flex-wrap gap-2">
+                {brands.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedBrandId(b.id);
+                      setPlatforms(b.defaultPlatforms.filter((p) => PLATFORM_OPTIONS.some((o) => o.value === p)) as Platform[]);
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-badge text-xs font-semibold border transition-all ${
+                      selectedBrandId === b.id
+                        ? 'border-transparent text-white shadow-sm'
+                        : 'border-border bg-bg-card text-text-secondary hover:border-primary/40'
+                    }`}
+                    style={selectedBrandId === b.id ? { background: b.primaryColor } : {}}
+                  >
+                    <Palette className="w-3 h-3" strokeWidth={2} />
+                    {b.name}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-text-muted mt-2">Selecionar um brand preenche as plataformas automaticamente</p>
+            </div>
+          )}
+
+          {/* Platform Selector */}
+          <div className="card p-5">
+            <label className="block text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Publicar em</label>
+            <div className="grid grid-cols-2 gap-2">
+              {PLATFORM_OPTIONS.map((p) => {
+                const active = platforms.includes(p.value);
+                const Icon = p.icon;
+                return (
+                  <button
+                    key={p.value}
+                    onClick={() => togglePlatform(p.value)}
+                    className={`flex items-center gap-2.5 py-2.5 px-3 rounded-btn border transition-all duration-200 ${
+                      active
+                        ? 'border-primary bg-primary/[0.06] shadow-sm'
+                        : 'border-border bg-bg-card hover:border-primary/40'
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${active ? p.color : 'bg-bg-main'}`}>
+                      <Icon className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-text-muted'}`} strokeWidth={2} />
+                    </div>
+                    <span className={`text-xs font-semibold ${active ? 'text-text-primary' : 'text-text-secondary'}`}>{p.label}</span>
+                    {active && (
+                      <span className="ml-auto w-4 h-4 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-text-muted mt-2">Selecione pelo menos 1 plataforma. O post será publicado em todas as selecionadas.</p>
           </div>
 
           {/* Caption */}

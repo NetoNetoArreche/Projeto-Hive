@@ -91,6 +91,28 @@ const SERVICES: ServiceConfig[] = [
       { key: 'CLOUDINARY_API_SECRET', label: 'API Secret', placeholder: 'clica em "reveal" no dashboard Cloudinary' },
     ],
   },
+  {
+    name: 'LinkedIn (publicacao em perfil pessoal)',
+    description: 'Crie um app em linkedin.com/developers, adicione "Share on LinkedIn", copie Client ID e Secret',
+    icon: Hexagon,
+    iconBg: 'bg-sky-500/10',
+    iconColor: 'text-sky-600',
+    fields: [
+      { key: 'LINKEDIN_CLIENT_ID', label: 'Client ID', placeholder: '77xxxxxxxxxx' },
+      { key: 'LINKEDIN_CLIENT_SECRET', label: 'Client Secret', placeholder: 'Chave secreta do app LinkedIn' },
+    ],
+  },
+  {
+    name: 'X / Twitter (text only, free tier)',
+    description: 'Crie um app em developer.x.com, habilite OAuth 2.0 com PKCE. Free tier = 1.500 tweets/mes',
+    icon: Hexagon,
+    iconBg: 'bg-gray-500/10',
+    iconColor: 'text-gray-600',
+    fields: [
+      { key: 'X_CLIENT_ID', label: 'Client ID', placeholder: 'xxxxxxxxxxxxx' },
+      { key: 'X_CLIENT_SECRET', label: 'Client Secret', placeholder: 'Chave secreta do app X' },
+    ],
+  },
 ];
 
 export default function SettingsPage() {
@@ -111,10 +133,77 @@ export default function SettingsPage() {
   const [igUserId, setIgUserId] = useState('');
   const [igAdding, setIgAdding] = useState(false);
 
+  // Social accounts (multi-platform)
+  const [socialAccounts, setSocialAccounts] = useState<any[]>([]);
+  const [showAddSocial, setShowAddSocial] = useState(false);
+  const [socialForm, setSocialForm] = useState({ platform: 'FACEBOOK', accessToken: '', platformUserId: '', username: '', displayName: '', pageId: '' });
+  const [socialAdding, setSocialAdding] = useState(false);
+
   useEffect(() => {
     loadSettings();
     loadIgAccounts();
+    loadSocialAccounts();
   }, []);
+
+  async function loadSocialAccounts() {
+    try {
+      const res: any = await api.listSocialAccounts();
+      setSocialAccounts(Array.isArray(res) ? res : res?.data || []);
+    } catch {}
+  }
+
+  async function handleAddSocialAccount() {
+    if (!socialForm.accessToken || !socialForm.platformUserId) return;
+    setSocialAdding(true);
+    try {
+      await api.addSocialAccount(socialForm as any);
+      setSocialForm({ platform: 'FACEBOOK', accessToken: '', platformUserId: '', username: '', displayName: '', pageId: '' });
+      setShowAddSocial(false);
+      await loadSocialAccounts();
+    } catch {}
+    setSocialAdding(false);
+  }
+
+  async function handleSetDefaultSocial(id: string) {
+    try {
+      await api.setDefaultSocialAccount(id);
+      await loadSocialAccounts();
+    } catch {}
+  }
+
+  async function handleDeleteSocial(id: string) {
+    if (!await confirm({ message: 'Remover esta conta social?' })) return;
+    try {
+      await api.deleteSocialAccount(id);
+      await loadSocialAccounts();
+    } catch {}
+  }
+
+  async function handleConnectLinkedIn() {
+    try {
+      const data: any = await api.getLinkedInAuthUrl();
+      if (data.authUrl) {
+        window.open(data.authUrl, '_blank', 'width=600,height=700');
+      } else {
+        alert('Erro: URL de autorização não retornada. Verifique se o LINKEDIN_CLIENT_ID está salvo nas configurações.');
+      }
+    } catch (err: any) {
+      alert('Erro ao conectar LinkedIn: ' + (err?.message || 'Verifique se LINKEDIN_CLIENT_ID e LINKEDIN_CLIENT_SECRET estão salvos nas configurações acima.'));
+    }
+  }
+
+  async function handleConnectX() {
+    try {
+      const data: any = await api.getXAuthUrl();
+      if (data.authUrl) {
+        window.open(data.authUrl, '_blank', 'width=600,height=700');
+      } else {
+        alert('Erro: URL de autorização não retornada. Verifique se o X_CLIENT_ID está salvo nas configurações.');
+      }
+    } catch (err: any) {
+      alert('Erro ao conectar X/Twitter: ' + (err?.message || 'Verifique se X_CLIENT_ID e X_CLIENT_SECRET estão salvos nas configurações acima.'));
+    }
+  }
 
   async function loadIgAccounts() {
     try {
@@ -464,6 +553,102 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-3">Contas Sociais</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {[
+            { platform: 'FACEBOOK', label: 'Facebook', icon: '📘', color: 'from-blue-500/10 to-blue-600/10', textColor: 'text-blue-600' },
+            { platform: 'LINKEDIN', label: 'LinkedIn', icon: '💼', color: 'from-sky-500/10 to-sky-600/10', textColor: 'text-sky-600' },
+            { platform: 'X', label: 'X / Twitter', icon: '𝕏', color: 'from-gray-500/10 to-gray-600/10', textColor: 'text-gray-600' },
+          ].map(({ platform, label, icon, color, textColor }) => {
+            const platformAccounts = socialAccounts.filter((a) => a.platform === platform);
+            return (
+              <div key={platform} className="card p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">{icon}</span>
+                  <h4 className={`text-sm font-bold ${textColor}`}>{label}</h4>
+                  {platformAccounts.length > 0 && (
+                    <span className="badge badge-completed text-[10px]">Conectado</span>
+                  )}
+                </div>
+                {platform === 'LINKEDIN' && (
+                  <button onClick={handleConnectLinkedIn} className="btn-cta text-xs w-full mb-2">Conectar via OAuth</button>
+                )}
+                {platform === 'X' && (
+                  <button onClick={handleConnectX} className="btn-cta text-xs w-full mb-2">Conectar via OAuth</button>
+                )}
+                {platform === 'FACEBOOK' && (
+                  <button onClick={() => { setShowAddSocial(true); setSocialForm({ ...socialForm, platform: 'FACEBOOK' }); }} className="btn-cta text-xs w-full mb-2">Adicionar Manualmente</button>
+                )}
+                {platformAccounts.length === 0 && (
+                  <p className="text-[10px] text-text-muted">Nenhuma conta conectada</p>
+                )}
+                {platformAccounts.map((acc) => (
+                  <div key={acc.id} className="flex items-center gap-2 p-2 rounded-lg bg-bg-main mb-1.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-text-primary truncate">{acc.displayName || acc.username || acc.platformUserId}</p>
+                      {acc.isDefault && <span className="text-[9px] text-primary font-bold">PADRAO</span>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {!acc.isDefault && (
+                        <button onClick={() => handleSetDefaultSocial(acc.id)} className="text-[9px] text-primary hover:underline">Padrao</button>
+                      )}
+                      <button onClick={() => handleDeleteSocial(acc.id)} className="p-1 text-text-muted hover:text-red-500">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+
+        {showAddSocial && (
+          <div className="card p-5 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-text-primary">Adicionar Conta Social</h3>
+              <button onClick={() => setShowAddSocial(false)} className="btn-ghost text-xs">Cancelar</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-text-muted mb-1">Plataforma</label>
+                <select
+                  value={socialForm.platform}
+                  onChange={(e) => setSocialForm({ ...socialForm, platform: e.target.value })}
+                  className="input-field text-xs"
+                >
+                  <option value="FACEBOOK">Facebook</option>
+                  <option value="LINKEDIN">LinkedIn</option>
+                  <option value="X">X / Twitter</option>
+                  <option value="INSTAGRAM">Instagram</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-text-muted mb-1">Access Token</label>
+                <input value={socialForm.accessToken} onChange={(e) => setSocialForm({ ...socialForm, accessToken: e.target.value })} className="input-field text-xs" placeholder="Token de acesso" type="password" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-text-muted mb-1">Platform User ID</label>
+                <input value={socialForm.platformUserId} onChange={(e) => setSocialForm({ ...socialForm, platformUserId: e.target.value })} className="input-field text-xs" placeholder="Page ID / Person URN / User ID" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-text-muted mb-1">Username (opcional)</label>
+                <input value={socialForm.username} onChange={(e) => setSocialForm({ ...socialForm, username: e.target.value })} className="input-field text-xs" placeholder="@username" />
+              </div>
+              {socialForm.platform === 'FACEBOOK' && (
+                <div>
+                  <label className="block text-[11px] font-semibold text-text-muted mb-1">Page ID</label>
+                  <input value={socialForm.pageId} onChange={(e) => setSocialForm({ ...socialForm, pageId: e.target.value })} className="input-field text-xs" placeholder="Facebook Page ID" />
+                </div>
+              )}
+            </div>
+            <button onClick={handleAddSocialAccount} disabled={!socialForm.accessToken || !socialForm.platformUserId || socialAdding} className="btn-cta text-xs mt-3">
+              {socialAdding ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</> : 'Adicionar'}
+            </button>
+          </div>
+        )}
 
         <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Chaves de API</p>
 
