@@ -1,9 +1,18 @@
+interface BrandContext {
+  name: string;
+  voiceTone?: string;
+  defaultHashtags?: string[];
+  products?: string[];
+  description?: string;
+}
+
 interface GenerateCaptionParams {
   topic: string;
   tone?: 'educativo' | 'inspirador' | 'humor' | 'noticia';
   hashtagsCount?: number;
   language?: string;
   maxLength?: number;
+  brandId?: string;
 }
 
 interface GenerateCaptionResult {
@@ -31,28 +40,42 @@ const TONE_TEMPLATES: Record<string, string> = {
   noticia: '🔥 NOVIDADE!\n\n{content}\n\n📲 Fica ligado para mais updates!',
 };
 
-function generateHashtags(topic: string, count: number): string[] {
-  const base = ['IA', 'Tech', 'Programacao', 'Dev', 'Tecnologia'];
+async function getBrandContext(brandId: string): Promise<BrandContext | null> {
+  const { prisma } = await import('../config/database');
+  const brand = await prisma.brand.findUnique({ where: { id: brandId } });
+  if (!brand) return null;
+  return {
+    name: brand.name,
+    voiceTone: brand.voiceTone || undefined,
+    defaultHashtags: brand.defaultHashtags?.length ? brand.defaultHashtags : undefined,
+    products: brand.products?.length ? brand.products : undefined,
+    description: brand.description || undefined,
+  };
+}
+
+function generateHashtags(topic: string, count: number, brandHashtags?: string[]): string[] {
+  const base = brandHashtags?.length ? brandHashtags : ['IA', 'Tech', 'Programacao', 'Dev', 'Tecnologia'];
   const topicWords = topic
     .split(' ')
     .filter((w) => w.length > 3)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 
-  return [...topicWords.slice(0, Math.ceil(count / 2)), ...base.slice(0, count)].slice(0, count);
+  return [...base, ...topicWords.slice(0, Math.ceil(count / 2))].slice(0, count);
 }
 
-function generateCaptionStatic(params: GenerateCaptionParams): GenerateCaptionResult {
+function generateCaptionStatic(params: GenerateCaptionParams, brand?: BrandContext | null): GenerateCaptionResult {
   const { topic, tone = 'educativo', hashtagsCount = 10, maxLength = 2200 } = params;
 
   const template = TONE_TEMPLATES[tone] || TONE_TEMPLATES.educativo;
-  const content = `Sobre ${topic}: Este é um tema essencial para quem acompanha tecnologia e inovação. Confira as novidades e insights mais importantes!`;
+  const brandName = brand?.name || 'nossos seguidores';
+  const content = `Sobre ${topic}: Conteúdo relevante para ${brandName}. Confira!`;
   let caption = template.replace('{content}', content);
 
   if (caption.length > maxLength) {
     caption = caption.slice(0, maxLength - 3) + '...';
   }
 
-  const hashtags = generateHashtags(topic, hashtagsCount);
+  const hashtags = generateHashtags(topic, hashtagsCount, brand?.defaultHashtags);
 
   return { caption, hashtags };
 }
@@ -85,13 +108,42 @@ export async function generateCaption(params: GenerateCaptionParams): Promise<Ge
   const { getSetting } = await import('../helpers/getSetting');
   const apiKey = await getSetting('NANO_BANANA_API_KEY');
 
+  let brand: BrandContext | null = null;
+  if (params.brandId) {
+    brand = await getBrandContext(params.brandId);
+  }
+
   if (!apiKey) {
-    return generateCaptionStatic(params);
+    return generateCaptionStatic(params, brand);
   }
 
   const { topic, tone = 'educativo', hashtagsCount = 10 } = params;
 
-  const prompt = `Você é um especialista em conteúdo para Instagram no nicho de tecnologia.
+  let prompt: string;
+  if (brand) {
+    prompt = `Você é redator de redes sociais de "${brand.name}".
+${brand.description ? `\nSobre a marca: ${brand.description}\n` : ''}
+${brand.voiceTone ? `IDENTIDADE DA MARCA - Tom de voz: ${brand.voiceTone}` : 'Tom: profissional e engajador'}
+
+Gere conteúdo para Instagram sobre: "${topic}"
+
+${brand.defaultHashtags?.length ? `Hashtags obrigatórias da marca (inclua todas): ${brand.defaultHashtags.join(', ')}` : ''}
+
+Retorne EXATAMENTE neste formato (sem markdown, sem aspas extras):
+TITULO: [título impactante, máximo 6 palavras]
+SUBTITULO: [subtítulo que complementa, máximo 15 palavras]
+LEGENDA: [legenda para Instagram, 100-200 palavras, com emojis adequados ao tom da marca e CTA]
+HASHTAGS: [${hashtagsCount} hashtags separadas por vírgula, sem #${brand.defaultHashtags?.length ? ' — inclua TODAS as hashtags obrigatórias da marca e adicione relevantes ao tema' : ', mix de alto volume e nicho'}]
+
+Regras:
+- Português BR
+- Título deve ser hook que para o scroll
+- Subtítulo complementa o título com dado ou contexto
+- Legenda com gancho, valor e CTA
+- Hashtags relevantes ao nicho da marca
+- Mantenha o tom de voz da marca em TODO o conteúdo`;
+  } else {
+    prompt = `Você é redator de conteúdo para Instagram.
 
 Gere conteúdo para um slide de carrossel sobre: "${topic}"
 
@@ -101,7 +153,7 @@ Retorne EXATAMENTE neste formato (sem markdown, sem aspas extras):
 TITULO: [título impactante, máximo 6 palavras]
 SUBTITULO: [subtítulo que complementa, máximo 15 palavras]
 LEGENDA: [legenda para Instagram, 100-200 palavras, com emojis moderados e CTA]
-HASHTAGS: [10 hashtags separadas por vírgula, sem #]
+HASHTAGS: [${hashtagsCount} hashtags separadas por vírgula, sem #]
 
 Regras:
 - Português BR
@@ -109,6 +161,7 @@ Regras:
 - Subtítulo complementa o título com dado ou contexto
 - Legenda com gancho, valor e CTA
 - Hashtags mix de alto volume e nicho`;
+  }
 
   try {
     const result = await callGeminiText(apiKey, prompt);
@@ -121,19 +174,21 @@ Regras:
     const title = titleMatch?.[1]?.trim() || topic;
     const subtitle = subtitleMatch?.[1]?.trim() || '';
     const captionText = captionMatch?.[1]?.trim() || '';
-    const hashtags = hashtagsMatch?.[1]
+    const rawHashtags = hashtagsMatch?.[1]
       ?.split(',')
       .map((h: string) => h.trim().replace(/^#/, ''))
-      .filter(Boolean)
-      .slice(0, hashtagsCount) || generateHashtags(topic, hashtagsCount);
+      .filter(Boolean) || [];
 
-    // Format: title + subtitle in first line for the editor to split
+    const brandHashtags = brand?.defaultHashtags || [];
+    const mergedHashtags = [...new Set([...brandHashtags, ...rawHashtags])].slice(0, hashtagsCount);
+    const hashtags = mergedHashtags.length > 0 ? mergedHashtags : generateHashtags(topic, hashtagsCount, brand?.defaultHashtags);
+
     const caption = `${title}.\n${subtitle}${captionText ? `\n\n${captionText}` : ''}`;
 
     return { caption, hashtags };
   } catch (err) {
     console.error('[caption] Gemini failed, falling back to static:', err);
-    return generateCaptionStatic(params);
+    return generateCaptionStatic(params, brand);
   }
 }
 
