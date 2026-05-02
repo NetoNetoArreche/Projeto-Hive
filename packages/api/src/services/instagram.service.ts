@@ -7,8 +7,25 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+async function uploadBufferToImgur(buffer: Buffer): Promise<string> {
+  const clientId = process.env.IMGUR_CLIENT_ID || '546c25a59c58ad7';
+  const blob = new Blob([buffer], { type: 'image/jpeg' });
+  const form = new FormData();
+  form.append('image', blob, 'upload.jpg');
+
+  const res = await fetch('https://api.imgur.com/3/upload', {
+    method: 'POST',
+    headers: { Authorization: `Client-ID ${clientId}` },
+    body: form,
+  });
+
+  const data = (await res.json()) as any;
+  if (!data.success) throw new Error(`Imgur upload failed: ${data.data?.error || JSON.stringify(data)}`);
+  return data.data.link;
+}
+
 /**
- * Mirror an image to Cloudinary and return the secure_url.
+ * Mirror an image to a Meta-compatible CDN (Cloudinary or Imgur fallback).
  *
  * Why we need this: Meta's Graph API maintains an opaque hostname
  * allowlist for image_url. Self-hosted hosts (sslip.io, R2, custom
@@ -18,19 +35,10 @@ function sleep(ms: number) {
  * Wikipedia, Imgur, Unsplash, etc.) work consistently.
  *
  * Pipeline: download original → flatten alpha + convert to sRGB JPEG
- * (Meta-friendly) → upload to Cloudinary → return secure_url.
+ * (Meta-friendly) → upload to Cloudinary (or Imgur fallback) → return URL.
  */
-async function ensureMetaCompatibleUrl(imageUrl: string): Promise<string> {
-  if (!(await isCloudinaryConfigured())) {
-    throw new Error(
-      'Cloudinary não configurado. Meta apertou o filtro de hostnames em 2026 e ' +
-      'rejeita imagens hospedadas em hosts auto-hospedados (sslip.io, R2, MinIO direto, etc). ' +
-      'Configure suas credenciais Cloudinary em /settings → Cloudinary. ' +
-      'Free tier 25GB/mês em https://cloudinary.com/users/register_free',
-    );
-  }
-
-  console.log(`[Instagram] Mirroring to Cloudinary for Meta compatibility: ${imageUrl}`);
+export async function ensureMetaCompatibleUrl(imageUrl: string): Promise<string> {
+  console.log(`[Instagram] Mirroring to CDN for Meta compatibility: ${imageUrl}`);
   const res = await fetch(imageUrl);
   if (!res.ok) throw new Error(`Failed to fetch source image: ${res.status} ${imageUrl}`);
   const inputBuffer = Buffer.from(await res.arrayBuffer());
@@ -42,9 +50,21 @@ async function ensureMetaCompatibleUrl(imageUrl: string): Promise<string> {
     .jpeg({ quality: 92, progressive: false, mozjpeg: false })
     .toBuffer();
 
-  const cdnUrl = await uploadBufferToCloudinary(jpegBuffer, 'openhive/instagram');
-  console.log(`[Instagram] Cloudinary URL: ${cdnUrl} (${(jpegBuffer.length / 1024).toFixed(0)}KB, was ${(inputBuffer.length / 1024).toFixed(0)}KB)`);
-  return cdnUrl;
+  // Try Cloudinary first, fall back to Imgur
+  if (await isCloudinaryConfigured()) {
+    try {
+      const cdnUrl = await uploadBufferToCloudinary(jpegBuffer, 'openhive/instagram');
+      console.log(`[Instagram] Cloudinary URL: ${cdnUrl} (${(jpegBuffer.length / 1024).toFixed(0)}KB)`);
+      return cdnUrl;
+    } catch (err: any) {
+      console.warn(`[Instagram] Cloudinary upload failed (${err?.message}), falling back to Imgur`);
+    }
+  }
+
+  // Imgur fallback — always works, no config needed
+  const imgurUrl = await uploadBufferToImgur(jpegBuffer);
+  console.log(`[Instagram] Imgur URL: ${imgurUrl} (${(jpegBuffer.length / 1024).toFixed(0)}KB)`);
+  return imgurUrl;
 }
 
 /**
@@ -137,7 +157,7 @@ async function pollContainerStatus(containerId: string, token: string, maxAttemp
  * This catches problems early before sending to Instagram, which gives
  * cryptic ERROR responses when it can't fetch a media URL.
  */
-async function verifyPublicUrl(url: string, label: string): Promise<void> {
+export async function verifyPublicUrl(url: string, label: string): Promise<void> {
   console.log(`[Instagram] Verifying ${label} URL is public: ${url}`);
   try {
     const res = await fetch(url, { method: 'HEAD' });
@@ -382,19 +402,28 @@ export async function publishToInstagram(postId: string, accountId?: string) {
     include: { images: { orderBy: { order: 'asc' } } },
   });
 
-  // Try to get token from database first (supports multiple accounts)
   let token: string | undefined;
   let igUserId: string | undefined;
+  const userId = post.userId;
 
   if (accountId) {
-    // Specific account requested
     const account = await prisma.instagramToken.findUnique({ where: { id: accountId } });
     if (account) { token = account.accessToken; igUserId = account.instagramUserId; }
   }
 
+  if (!token && post.brandId) {
+    const brandAccount = await prisma.socialAccount.findFirst({
+      where: { userId, platform: 'INSTAGRAM', brandId: post.brandId },
+    });
+    if (brandAccount?.pageId) {
+      const matched = await prisma.instagramToken.findFirst({
+        where: { userId, pageId: brandAccount.pageId },
+      });
+      if (matched) { token = matched.accessToken; igUserId = matched.instagramUserId; }
+    }
+  }
+
   if (!token) {
-    // Try default account for this user
-    const userId = post.userId;
     const defaultAccount = await prisma.instagramToken.findFirst({
       where: { userId, isDefault: true },
     });
@@ -402,8 +431,6 @@ export async function publishToInstagram(postId: string, accountId?: string) {
   }
 
   if (!token) {
-    // Try any account for this user
-    const userId = post.userId;
     const anyAccount = await prisma.instagramToken.findFirst({ where: { userId } });
     if (anyAccount) { token = anyAccount.accessToken; igUserId = anyAccount.instagramUserId; }
   }
