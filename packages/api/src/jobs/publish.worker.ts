@@ -2,6 +2,7 @@ import { Worker } from 'bullmq';
 import { redis } from '../config/redis';
 import { prisma } from '../config/database';
 import { publishToInstagram } from '../services/instagram.service';
+import { publishToPlatforms } from '../services/social-publisher';
 import { deleteObject } from '../services/storage.service';
 
 export const publishWorker = new Worker(
@@ -9,34 +10,57 @@ export const publishWorker = new Worker(
   async (job) => {
     const { postId, accountId } = job.data;
 
-    await prisma.post.update({
+    const post = await prisma.post.update({
       where: { id: postId },
       data: { status: 'PUBLISHING' },
     });
 
     try {
-      const result = await publishToInstagram(postId, accountId);
+      const platforms = post.platforms as string[];
+      let publishedResults: Record<string, { id?: string; error?: string }> | null = null;
+
+      if (platforms && platforms.length > 0 && !(platforms.length === 1 && platforms[0] === 'INSTAGRAM' && !post.publishedResults)) {
+        publishedResults = await publishToPlatforms(postId, platforms as any[], accountId);
+      } else {
+        const result = await publishToInstagram(postId, accountId);
+        publishedResults = { INSTAGRAM: { id: result.id } };
+      }
+
+      const allSucceeded = Object.values(publishedResults).every((r) => r.id);
+      const someSucceeded = Object.values(publishedResults).some((r) => r.id);
+      const errors = Object.entries(publishedResults)
+        .filter(([, r]) => r.error)
+        .map(([platform, r]) => `${platform}: ${r.error}`)
+        .join('; ');
+
+      const firstIgId = publishedResults.INSTAGRAM?.id || publishedResults.FACEBOOK?.id || null;
+
       await prisma.post.update({
         where: { id: postId },
-        data: { status: 'PUBLISHED', publishedAt: new Date(), instagramId: result.id, lastError: null },
+        data: {
+          status: allSucceeded ? 'PUBLISHED' : someSucceeded ? 'PUBLISHED' : 'FAILED',
+          publishedAt: new Date(),
+          instagramId: firstIgId,
+          publishedResults: publishedResults as any,
+          lastError: errors || null,
+        },
       });
 
       // Auto-cleanup video from MinIO after successful publish (unless keepMedia=true)
-      const post = await prisma.post.findUnique({
+      const updatedPost = await prisma.post.findUnique({
         where: { id: postId },
         select: { mediaType: true, videoMinioKey: true, keepMedia: true },
       });
-      if (post?.mediaType === 'VIDEO' && post.videoMinioKey && !post.keepMedia) {
+      if (updatedPost?.mediaType === 'VIDEO' && updatedPost.videoMinioKey && !updatedPost.keepMedia) {
         try {
-          await deleteObject(post.videoMinioKey);
+          await deleteObject(updatedPost.videoMinioKey);
           await prisma.post.update({
             where: { id: postId },
             data: { videoUrl: null, videoMinioKey: null },
           });
-          console.log(`[publish.worker] Deleted video from MinIO: ${post.videoMinioKey}`);
+          console.log(`[publish.worker] Deleted video from MinIO: ${updatedPost.videoMinioKey}`);
         } catch (cleanupErr) {
           console.error(`[publish.worker] Failed to cleanup video for post ${postId}:`, cleanupErr);
-          // Don't fail the job - the post was already published
         }
       }
     } catch (error: any) {
