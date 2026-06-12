@@ -22,6 +22,7 @@ import {
 import { composeImageWithOverlay } from './tools/composeImageWithOverlay';
 import { generateImage } from './tools/generateImage';
 import { generateCaption } from './tools/generateCaption';
+import { generateImagePrompt } from './tools/generateImagePrompt';
 import { schedulePost } from './tools/schedulePost';
 import { updatePost } from './tools/updatePost';
 import { listPosts } from './tools/listPosts';
@@ -52,7 +53,7 @@ const PORT = parseInt(process.env.PORT || '3002', 10);
 function registerTools(server: McpServer) {
   server.tool(
     'create_post',
-    'Cria um post para Instagram. Suporta imagem unica ou carrossel (2-10 imagens)',
+    'Cria um post para Instagram. Suporta imagem unica ou carrossel (2-10 imagens). Suporta brand_id para legenda com tom de voz da marca e platforms para multi-plataforma.',
     {
       caption: z.string().optional().describe('Legenda do post'),
       image_prompt: z.string().optional().describe('Prompt para gerar UMA imagem'),
@@ -62,10 +63,12 @@ function registerTools(server: McpServer) {
       scheduled_at: z.string().optional().describe('Data/hora para agendar (ISO 8601)'),
       hashtags: z.array(z.string()).optional().describe('Lista de hashtags'),
       tone: z.string().optional().describe('Tom: educativo, inspirador, humor, noticia'),
-      editor_state: z.record(z.unknown()).optional().describe('Estado estruturado dos slides para o Editor Visual da web. Formato: { slides: SlideState[], brandId?, aspectRatio?, globalStyle? }. Quando presente, o post pode ser aberto e editado no visual editor com titulo, subtitulo, fundo, posicao etc.'),
+      editor_state: z.record(z.unknown()).optional().describe('Estado estruturado dos slides para o Editor Visual da web'),
+      brand_id: z.string().optional().describe('ID do brand para aplicar tom de voz e hashtags automaticamente na legenda'),
+      platforms: z.array(z.string()).optional().describe('Plataformas alvo: instagram, facebook, linkedin, x (default: todas conectadas)'),
     },
-    async ({ caption, image_prompt, image_prompts, image_urls, aspect_ratio, scheduled_at, hashtags, tone, editor_state }) => {
-      const result = await createPost({ caption, image_prompt, image_prompts, image_urls, aspect_ratio, scheduled_at, hashtags, tone, editor_state });
+    async ({ caption, image_prompt, image_prompts, image_urls, aspect_ratio, scheduled_at, hashtags, tone, editor_state, brand_id, platforms }) => {
+      const result = await createPost({ caption, image_prompt, image_prompts, image_urls, aspect_ratio, scheduled_at, hashtags, tone, editor_state, brand_id, platforms });
       return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -124,16 +127,33 @@ function registerTools(server: McpServer) {
 
   server.tool(
     'generate_caption',
-    'Gera uma legenda otimizada para Instagram',
+    'Gera uma legenda otimizada. Use brand_id para legenda com tom de voz e hashtags da marca.',
     {
       topic: z.string().describe('Tema do post'),
       tone: z.enum(['educativo', 'inspirador', 'humor', 'noticia']).optional().describe('Tom da legenda'),
       hashtags_count: z.number().optional().describe('Quantidade de hashtags (1-30)'),
       language: z.string().optional().describe('Idioma (padrão: pt-BR)'),
       max_length: z.number().optional().describe('Tamanho máximo da legenda'),
+      brand_id: z.string().optional().describe('ID do brand — gera legenda com tom de voz e hashtags da marca'),
     },
-    async ({ topic, tone, hashtags_count, language, max_length }) => {
-      const result = await generateCaption({ topic, tone, hashtags_count, language, max_length });
+    async ({ topic, tone, hashtags_count, language, max_length, brand_id }) => {
+      const result = await generateCaption({ topic, tone, hashtags_count, language, max_length, brand_id });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    'generate_image_prompt',
+    'Gera um prompt otimizado para Google AI Studio (Gemini/Imagen). Copie o prompt e cole no AI Studio para gerar imagens de alta qualidade gratuitamente. Retorna: prompt em inglês, negative prompt e dicas de ajuste.',
+    {
+      topic: z.string().describe('Tema/descricao da imagem desejada (ex: "Aventureiros em trilha na natureza com mochilas coloridas")'),
+      brand_id: z.string().optional().describe('ID do brand — ajusta cores e estilo visual ao prompt'),
+      style: z.string().optional().describe('Estilo visual: fotografico, ilustracao, flat-design, aquarela, cartoon, realista (default: fotografico)'),
+      aspect_ratio: z.string().optional().describe('Proporcao: "1:1", "4:5", "9:16" (default: 4:5)'),
+      usage: z.string().optional().describe('Uso da imagem: "post carrossel", "stories", "capa" (default: post de Instagram/Facebook)'),
+    },
+    async ({ topic, brand_id, style, aspect_ratio, usage }) => {
+      const result = await generateImagePrompt({ topic, brand_id, style, aspect_ratio, usage });
       return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -153,16 +173,18 @@ function registerTools(server: McpServer) {
 
   server.tool(
     'update_post',
-    'Atualiza um post existente (legenda, hashtags, agendamento). Se o post estiver agendado e voce mudar a data, o agendamento e atualizado automaticamente',
+    'Atualiza um post existente (legenda, hashtags, agendamento, brand, plataformas). Se o post estiver agendado e voce mudar a data, o agendamento e atualizado automaticamente',
     {
       post_id: z.string().describe('ID do post'),
       caption: z.string().optional().describe('Nova legenda'),
       hashtags: z.array(z.string()).optional().describe('Novas hashtags'),
       scheduled_at: z.string().optional().describe('Nova data/hora de agendamento (ISO 8601). Reagenda automaticamente se o post ja estiver agendado'),
       status: z.enum(['DRAFT', 'SCHEDULED']).optional().describe('Novo status (DRAFT para cancelar agendamento)'),
+      brand_id: z.string().optional().describe('ID do brand para associar ao post'),
+      platforms: z.array(z.string()).optional().describe('Plataformas alvo: instagram, facebook, linkedin, x'),
     },
-    async ({ post_id, caption, hashtags, scheduled_at, status }) => {
-      const result = await updatePost({ post_id, caption, hashtags, scheduled_at, status });
+    async ({ post_id, caption, hashtags, scheduled_at, status, brand_id, platforms }) => {
+      const result = await updatePost({ post_id, caption, hashtags, scheduled_at, status, brand_id, platforms });
       return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -338,24 +360,25 @@ function registerTools(server: McpServer) {
 
   server.tool(
     'list_posts',
-    'Lista posts por filtro',
+    'Lista posts com filtros (status, brand, paginacao). Retorna brand_id e platforms em cada post.',
     {
       status: z.enum(['DRAFT', 'SCHEDULED', 'PUBLISHED', 'FAILED']).optional().describe('Filtrar por status'),
       limit: z.number().optional().describe('Quantidade por página'),
       offset: z.number().optional().describe('Offset para paginação'),
+      brand_id: z.string().optional().describe('Filtrar posts de um brand especifico'),
     },
-    async ({ status, limit, offset }) => {
-      const result = await listPosts({ status, limit, offset });
+    async ({ status, limit, offset, brand_id }) => {
+      const result = await listPosts({ status, limit, offset, brand_id });
       return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
     },
   );
 
   server.tool(
     'publish_now',
-    'Publica um post imediatamente no Instagram. Use account_id para escolher a conta',
+    'Publica um post imediatamente em todas as plataformas conectadas (Instagram, Facebook, LinkedIn, X). Retorna resultados por plataforma.',
     {
       post_id: z.string().describe('ID do post para publicar'),
-      account_id: z.string().optional().describe('ID da conta Instagram (opcional, usa a padrao se nao informado)'),
+      account_id: z.string().optional().describe('ID da conta (opcional, usa todas conectadas se nao informado)'),
     },
     async ({ post_id, account_id }) => {
       const result = await publishNow({ post_id, account_id });

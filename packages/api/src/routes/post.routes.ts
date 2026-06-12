@@ -43,6 +43,8 @@ const createPostSchema = z.object({
   videoSizeBytes: z.number().int().optional(),
   keepMedia: z.boolean().optional(),
   editorState: z.any().optional(),
+  brandId: z.string().uuid().optional(),
+  platforms: z.array(z.enum(['INSTAGRAM', 'FACEBOOK', 'LINKEDIN', 'X'])).optional(),
 });
 
 const scheduleSchema = z.object({

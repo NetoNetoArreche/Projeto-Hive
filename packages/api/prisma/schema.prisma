@@ -14,6 +14,13 @@ enum Role {
   VIEWER
 }
 
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  X
+}
+
 model User {
   id             String          @id @default(uuid())
   email          String          @unique
@@ -30,6 +37,7 @@ model User {
   videoClips     VideoClip[]
   settings       Setting[]
   instagramTokens InstagramToken[]
+  socialAccounts  SocialAccount[]
   invitations    Invitation[]
   brands         Brand[]
   allowedPages   String[]        @default([])
@@ -58,7 +66,11 @@ model Brand {
   instagramUrl    String?
   products        String[] @default([])
   defaultHashtags String[] @default([])
+  defaultPlatforms String[] @default(["INSTAGRAM"])
+  tonePrompt      String?
+  stylePrompt     String?
   isDefault       Boolean  @default(false)
+  posts           Post[]
   userId          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now())
@@ -108,6 +120,10 @@ model Post {
   editorState     Json?
   driveLink       String?
   fileUrl         String?
+  platforms       SocialPlatform[] @default([INSTAGRAM])
+  publishedResults Json?
+  brandId         String?
+  brand           Brand?      @relation(fields: [brandId], references: [id])
   userId          String
   user            User        @relation(fields: [userId], references: [id])
   images          PostImage[]
@@ -159,6 +175,27 @@ model InstagramToken {
   user            User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+model SocialAccount {
+  id              String          @id @default(uuid())
+  platform        SocialPlatform
+  accessToken     String
+  refreshToken    String?
+  platformUserId  String
+  username        String?
+  displayName     String?
+  pageId          String?
+  isDefault       Boolean         @default(false)
+  expiresAt       DateTime?
+  refreshedAt     DateTime        @default(now())
+  userId          String
+  brandId         String?
+  user            User            @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([platform])
+  @@index([brandId])
 }
 
 enum PostStatus {

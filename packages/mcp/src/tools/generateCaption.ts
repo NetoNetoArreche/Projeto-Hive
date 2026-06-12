@@ -8,6 +8,7 @@ export async function generateCaption(input: GenerateCaptionInput) {
     hashtagsCount: input.hashtags_count,
     language: input.language,
     maxLength: input.max_length,
+    ...(input.brand_id ? { brandId: input.brand_id } : {}),
   });
   return { caption: result.caption, hashtags: result.hashtags };
 }

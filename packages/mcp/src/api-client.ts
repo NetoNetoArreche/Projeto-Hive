@@ -40,10 +40,16 @@ export const api = {
     }),
 
   generateCaption: (body: Record<string, unknown>) =>
-    request<{ caption: string; hashtags: string[] }>('/api/generate/caption', {
+    request('/api/generate/caption', {
       method: 'POST',
       body: JSON.stringify(body),
-    }),
+    }) as Promise<{ caption: string; hashtags: string[] }>,
+
+  generateImagePrompt: (body: Record<string, unknown>) =>
+    request('/api/generate/image-prompt', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }) as Promise<{ prompt: string; negative_prompt: string; tips: string }>,
 
   uploadImage: (base64: string, filename: string) => {
     const buffer = Buffer.from(base64, 'base64');

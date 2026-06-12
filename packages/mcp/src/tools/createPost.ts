@@ -61,6 +61,8 @@ export async function createPost(input: CreatePostInput) {
     ...(isCarousel ? { images } : { imageUrl }),
     ...(input.scheduled_at ? { scheduledAt: input.scheduled_at } : {}),
     ...(input.editor_state ? { editorState: input.editor_state } : {}),
+    ...(input.brand_id ? { brandId: input.brand_id } : {}),
+    ...(input.platforms?.length ? { platforms: input.platforms } : {}),
   })) as any;
 
   return {
@@ -70,5 +72,7 @@ export async function createPost(input: CreatePostInput) {
     is_carousel: post.isCarousel,
     image_count: isCarousel ? images.length : (post.imageUrl ? 1 : 0),
     status: post.status,
+    brand_id: post.brandId || null,
+    platforms: post.platforms || [],
   };
 }

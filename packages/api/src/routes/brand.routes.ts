@@ -51,6 +51,9 @@ const createBrandSchema = z.object({
   instagramUrl: optionalUrl,
   products: z.array(z.string()).optional(),
   defaultHashtags: z.array(z.string()).optional(),
+  defaultPlatforms: z.array(z.string()).optional(),
+  tonePrompt: optionalString(2000),
+  stylePrompt: optionalString(2000),
   isDefault: z.boolean().optional(),
 });
 

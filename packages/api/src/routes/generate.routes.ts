@@ -6,6 +6,7 @@ import { generateImageController, generateCaptionController, refineSlideControll
 import { renderTemplateToImage, renderHtmlToImage, renderComposedToImage } from '../services/template-renderer.service';
 import { TEMPLATES } from '../services/templates';
 import { generateImage } from '../services/nanobana.service';
+import { generateImagePromptForStudio } from '../services/caption.service';
 import { prisma } from '../config/database';
 import { resolveOwnerId } from '../helpers/resolveOwnerId';
 
@@ -23,12 +24,30 @@ const captionSchema = z.object({
   hashtagsCount: z.number().min(1).max(30).optional(),
   language: z.string().optional(),
   maxLength: z.number().max(2200).optional(),
+  brandId: z.string().optional(),
 });
 
 router.use(authMiddleware);
 
 router.post('/image', validate(imageSchema), generateImageController);
 router.post('/caption', validate(captionSchema), generateCaptionController);
+
+const imagePromptSchema = z.object({
+  topic: z.string().min(1),
+  brandId: z.string().optional(),
+  style: z.string().optional(),
+  aspectRatio: z.string().optional(),
+  usage: z.string().optional(),
+});
+
+router.post('/image-prompt', validate(imagePromptSchema), async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await generateImagePromptForStudio(req.body);
+    res.json({ success: true, data: result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Failed to generate image prompt' });
+  }
+});
 
 // Refine slide content with AI (Gemini)
 const refineSchema = z.object({
