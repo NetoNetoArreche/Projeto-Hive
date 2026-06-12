@@ -10,8 +10,8 @@ import { getLinkedInAuthUrl, exchangeLinkedInCode } from '../services/linkedin.s
 import { getXAuthUrl, exchangeXCode } from '../services/x.service';
 import crypto from 'crypto';
 
-const API_BASE = `http://localhost:${env.PORT}`;
-const X_CALLBACK_BASE = process.env.X_TUNNEL_URL || `http://localhost:${env.PORT}`;
+const API_BASE = process.env.API_BASE_URL || `http://localhost:${env.PORT}`;
+const X_CALLBACK_BASE = process.env.X_TUNNEL_URL || API_BASE;
 const GRAPH_BASE = 'https://graph.facebook.com/v21.0';
 
 const router = Router();
